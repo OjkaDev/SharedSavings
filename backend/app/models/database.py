@@ -64,7 +64,7 @@ class Category(Base):
     name = Column(String(100), nullable=False)
     icon = Column(String(10), default="💰")
     is_default = Column(Boolean, default=False)
-    household_id = Column(Integer, ForeignKey("houses.id"), nullable=True)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
