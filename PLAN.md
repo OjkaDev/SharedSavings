@@ -74,11 +74,11 @@ Proyecto-Cuenta/
 - [x] Crear ProtectedRoute
 - [x] Actualizar Layout con info usuario y logout
 
-### Fase 3: Configuración Backend
-- [ ] Configurar Supabase
-- [ ] Configurar .env
-- [ ] Verificar conexión
-- [ ] Crear tablas
+### Fase 3: Configuración Backend ✅
+- [x] Configurar Supabase (cuenta creada con GitHub)
+- [x] Configurar .env con credenciales
+- [x] Verificar conexión (usando connection pooling)
+- [x] Crear tablas (7 tablas creadas automáticamente)
 
 ### Fase 4: API de Autenticación
 - [ ] Probar endpoints auth
@@ -132,7 +132,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-2):**
+**Completado (Fase 1-3):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado
@@ -143,8 +143,11 @@ Proyecto-Cuenta/
 - Register conectado con API
 - ProtectedRoute creado
 - Layout con info usuario y logout
+- Supabase configurado y conectado
+- 7 tablas creadas en PostgreSQL
+- Backend funcional con FastAPI
 
-**Siguiente paso:** Fase 3 - Configuración Backend (Supabase)
+**Siguiente paso:** Fase 4 - Probar API de Autenticación
 
 ## Instrucciones para Ejecutar
 
