@@ -80,10 +80,11 @@ Proyecto-Cuenta/
 - [x] Verificar conexión (usando connection pooling)
 - [x] Crear tablas (7 tablas creadas automáticamente)
 
-### Fase 4: API de Autenticación
-- [ ] Probar endpoints auth
-- [ ] Verificar JWT
-- [ ] Probar /api/auth/me
+### Fase 4: API de Autenticación ✅
+- [x] Probar endpoints auth (register, login)
+- [x] Verificar JWT (corregido: sub field debe ser string)
+- [x] Probar /api/auth/me
+- [x] Instalar bcrypt 4.0.1 (compatibilidad con passlib)
 
 ### Fase 5: Gestión de Viviendas
 - [ ] Crear página Household
@@ -132,7 +133,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-3):**
+**Completado (Fase 1-4):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado
@@ -146,8 +147,11 @@ Proyecto-Cuenta/
 - Supabase configurado y conectado
 - 7 tablas creadas en PostgreSQL
 - Backend funcional con FastAPI
+- API de autenticación probada y funcional (register, login, /me)
+- JWT corregido (sub field como string)
+- bcrypt 4.0.1 instalado (compatibilidad con passlib)
 
-**Siguiente paso:** Fase 4 - Probar API de Autenticación
+**Siguiente paso:** Fase 5 - Gestión de Viviendas (Frontend)
 
 ## Instrucciones para Ejecutar
 
