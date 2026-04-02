@@ -47,3 +47,26 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.post("/api/test-register")
+def test_register(data: dict):
+    """Endpoint de prueba para debuggear el registro"""
+    try:
+        from app.routers.auth import register
+        from app.schemas.schemas import UserCreate
+        from app.models.database import SessionLocal
+        
+        db = SessionLocal()
+        user_data = UserCreate(**data)
+        result = register(user_data=user_data, db=db)
+        db.close()
+        return {"success": True, "data": result}
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }
