@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { TrashIcon, UserPlusIcon, UserGroupIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 export default function HouseholdCard({ household, onInvite, onDelete, currentUserId }) {
-  const isOwner = household.created_by === current_user?.id
+  const isOwner = household.created_by === currentUserId
 
   return (
     <div className="card hover:shadow-lg transition-shadow">
