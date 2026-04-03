@@ -220,8 +220,11 @@ def share_expenses_to_household(
         if not personal_expense:
             continue
 
-        # Verificar que no haya sido compartido ya
-        if personal_expense.shared_expense_id:
+        # Verificar que no haya sido compartido ya (buscar Expense existente)
+        existing_shared = db.query(Expense).filter(
+            Expense.personal_expense_id == personal_expense.id
+        ).first()
+        if existing_shared:
             continue
 
         # Crear el gasto compartido
