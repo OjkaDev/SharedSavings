@@ -86,11 +86,13 @@ Proyecto-Cuenta/
 - [x] Probar /api/auth/me
 - [x] Instalar bcrypt 4.0.1 (compatibilidad con passlib)
 
-### Fase 5: Gestión de Viviendas
-- [ ] Crear página Household
-- [ ] Modal crear vivienda
-- [ ] Modal invitar miembro
-- [ ] Eliminar vivienda
+### Fase 5: Gestión de Viviendas ✅
+- [x] Crear página Household
+- [x] Modal crear vivienda (CreateHouseholdModal)
+- [x] Modal invitar miembro (InviteMemberModal)
+- [x] Componente HouseholdCard
+- [x] Eliminar vivienda (solo propietario)
+- [x] Ruta añadida en App.jsx
 
 ### Fase 6: Gastos Compartidos
 - [ ] Crear página SharedExpenses
@@ -133,7 +135,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-4):**
+**Completado (Fase 1-5):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado
@@ -150,8 +152,12 @@ Proyecto-Cuenta/
 - API de autenticación probada y funcional (register, login, /me)
 - JWT corregido (sub field como string)
 - bcrypt 4.0.1 instalado (compatibilidad con passlib)
+- Página Household completa
+- Modales para crear vivienda e invitar miembros
+- Componente HouseholdCard
+- Funcionalidad de eliminar vivienda
 
-**Siguiente paso:** Fase 5 - Gestión de Viviendas (Frontend)
+**Siguiente paso:** Fase 6 - Gastos Compartidos (Frontend)
 
 ## Instrucciones para Ejecutar
 
