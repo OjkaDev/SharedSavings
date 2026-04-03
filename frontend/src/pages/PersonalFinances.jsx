@@ -100,7 +100,13 @@ export default function PersonalFinances() {
     fetchData()
   }
 
-  const selectedTransactions = transactions.filter((t) => selectedIds.includes(t.id))
+  const selectedTransactions = transactions.filter(
+    (t) => selectedIds.includes(t.id) && t.type === 'expense'
+  )
+
+  const hasIncomesSelected = selectedIds.some(
+    (id) => transactions.find((t) => t.id === id)?.type === 'income'
+  )
 
   if (loading) {
     return (
@@ -123,10 +129,13 @@ export default function PersonalFinances() {
           {selectedIds.length > 0 && (
             <button
               onClick={() => setShowShareModal(true)}
-              className="btn-secondary inline-flex items-center"
+              disabled={selectedTransactions.length === 0}
+              className={`btn-secondary inline-flex items-center ${
+                selectedTransactions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <HomeIcon className="h-5 w-5 mr-2" />
-              Compartir ({selectedIds.length})
+              Compartir ({selectedTransactions.length})
             </button>
           )}
           <button
@@ -200,9 +209,15 @@ export default function PersonalFinances() {
 
       {/* Tabla de transacciones */}
       <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Historial de Transacciones
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">
+            Historial de Transacciones
+          </h2>
+          {hasIncomesSelected && (
+            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+              Los ingresos no se pueden compartir
+            </span>
+          )}
 
         {transactions.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -260,8 +275,8 @@ export default function PersonalFinances() {
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(transaction.date).toLocaleDateString('es-ES')}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {transaction.description}
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
+                      {transaction.description || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {transaction.category?.name || '-'}
@@ -360,7 +375,7 @@ export default function PersonalFinances() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
+                    Descripción <span className="text-gray-400">(opcional)</span>
                   </label>
                   <input
                     type="text"
@@ -370,7 +385,7 @@ export default function PersonalFinances() {
                     }
                     className="input-field"
                     placeholder="Ej: Supermercado"
-                    required
+                    maxLength={50}
                   />
                 </div>
                 <div>

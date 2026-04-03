@@ -1,26 +1,33 @@
-import { TrashIcon, UserPlusIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
+import { TrashIcon, UserPlusIcon, UserGroupIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 export default function HouseholdCard({ household, onInvite, onDelete, currentUserId }) {
-  const isOwner = household.created_by === currentUserId
+  const isOwner = household.created_by === current_user?.id
 
   return (
-    <div className="card">
+    <div className="card hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start">
-        <div className="flex items-center">
+        <Link to={`/household/${household.id}`} className="flex items-center flex-1">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mr-4">
             <UserGroupIcon className="h-6 w-6 text-primary-600" />
           </div>
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">{household.name}</h3>
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900 hover:text-primary-600 transition">
+              {household.name}
+            </h3>
             <p className="text-sm text-gray-500">
               {household.members?.length || 0} miembro{household.members?.length !== 1 ? 's' : ''}
             </p>
           </div>
-        </div>
+          <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+        </Link>
         {isOwner && (
           <button
-            onClick={() => onDelete(household.id)}
-            className="text-gray-400 hover:text-red-500 transition"
+            onClick={(e) => {
+              e.preventDefault()
+              onDelete(household.id)
+            }}
+            className="text-gray-400 hover:text-red-500 transition ml-2"
             title="Eliminar vivienda"
           >
             <TrashIcon className="h-5 w-5" />
