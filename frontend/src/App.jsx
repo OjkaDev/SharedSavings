@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
+import Household from './pages/Household'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -19,6 +20,7 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="household" element={<Household />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
