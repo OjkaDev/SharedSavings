@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
-from app.models.database import get_db, User, PersonalExpense, Category
+from app.models.database import get_db, User, PersonalExpense, Category, Expense
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/personal", tags=["Personal Expenses"])
 
 
-@router.get("/expenses", response_model=List[PersonalExpenseResponse])
+@router.get("/expenses")
 def get_personal_expenses(
     type: str = None,
     category_id: int = None,
@@ -21,7 +21,7 @@ def get_personal_expenses(
 ):
     query = db.query(PersonalExpense).filter(
         PersonalExpense.user_id == current_user.id
-    )
+    ).options(joinedload(PersonalExpense.category))
 
     if type:
         query = query.filter(PersonalExpense.type == type)
@@ -32,7 +32,27 @@ def get_personal_expenses(
     if end_date:
         query = query.filter(PersonalExpense.date <= end_date)
 
-    return query.order_by(PersonalExpense.date.desc()).all()
+    expenses = query.order_by(PersonalExpense.date.desc()).all()
+    
+    # Añadir shared_expense_id consultando la tabla expenses
+    result = []
+    for exp in expenses:
+        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        exp_dict = {
+            "id": exp.id,
+            "user_id": exp.user_id,
+            "amount": exp.amount,
+            "description": exp.description,
+            "category_id": exp.category_id,
+            "date": exp.date,
+            "type": exp.type,
+            "created_at": exp.created_at,
+            "category": exp.category,
+            "shared_expense_id": shared.id if shared else None,
+        }
+        result.append(exp_dict)
+    
+    return result
 
 
 @router.get("/summary", response_model=PersonalSummary)
@@ -136,8 +156,13 @@ def delete_personal_expense(
             detail="Expense not found",
         )
 
-    # Verificar si fue compartido
-    if expense.shared_expense_id:
+    # Verificar si fue compartido (buscar Expense con este personal_expense_id)
+    from app.models.database import Expense
+    shared_expense = db.query(Expense).filter(
+        Expense.personal_expense_id == expense.id
+    ).first()
+    
+    if shared_expense:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este gasto fue compartido. Descompártelo primero desde la vivienda.",

@@ -158,6 +158,24 @@ class PersonalExpenseResponse(BaseModel):
     class Config:
         from_attributes = True
 
+    @classmethod
+    def from_orm_with_shared(cls, obj):
+        data = {
+            "id": obj.id,
+            "user_id": obj.user_id,
+            "amount": obj.amount,
+            "description": obj.description,
+            "category_id": obj.category_id,
+            "date": obj.date,
+            "type": obj.type,
+            "created_at": obj.created_at,
+            "category": obj.category,
+            "shared_expense_id": None,
+        }
+        if hasattr(obj, 'shared_expense') and obj.shared_expense:
+            data["shared_expense_id"] = obj.shared_expense.id
+        return cls(**data)
+
 
 class PersonalSummary(BaseModel):
     income: float

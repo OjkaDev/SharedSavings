@@ -298,14 +298,6 @@ def unshare_expense(
             detail="Only the payer can unshare this expense",
         )
 
-    # Limpiar referencia en gasto personal
-    if expense.personal_expense_id:
-        personal_expense = db.query(PersonalExpense).filter(
-            PersonalExpense.id == expense.personal_expense_id
-        ).first()
-        if personal_expense:
-            personal_expense.shared_expense_id = None
-
     # Eliminar gasto compartido
     db.delete(expense)
     db.commit()
