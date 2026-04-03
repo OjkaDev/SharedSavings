@@ -163,3 +163,42 @@ class PersonalSummary(BaseModel):
     expenses: float
     balance: float
     by_category: List[dict] = []
+
+
+# Share expenses schemas
+class ShareExpenseSplit(BaseModel):
+    user_id: int
+    percentage: float
+
+
+class ShareExpenseItem(BaseModel):
+    expense_id: int
+    split_type: str = "equal"
+    splits: Optional[List[ShareExpenseSplit]] = []
+
+
+class ShareExpensesRequest(BaseModel):
+    household_id: int
+    expenses: List[ShareExpenseItem]
+
+
+class ShareExpensesResponse(BaseModel):
+    shared: int
+    total: float
+    message: str
+
+
+# Debt schemas
+class DebtDetail(BaseModel):
+    user_id: int
+    user_name: str
+    user_email: str
+    amount_owed: float  # Lo que te deben (positivo) o debes (negativo)
+    splits: List[dict] = []
+
+
+class DebtSummary(BaseModel):
+    you_owe: float  # Total que debes
+    you_are_owed: float  # Total que te deben
+    balance: float  # Balance neto
+    debts: List[DebtDetail] = []

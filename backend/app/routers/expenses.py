@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
-from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members
-from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary
+from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, PersonalExpense
+from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
@@ -164,3 +164,106 @@ def delete_expense(
     db.delete(expense)
     db.commit()
     return {"message": "Expense deleted successfully"}
+
+
+@router.post("/share", response_model=ShareExpensesResponse)
+def share_expenses_to_household(
+    share_data: ShareExpensesRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Compartir gastos personales a una vivienda"""
+    # Verificar que el usuario es miembro de la vivienda
+    is_member = (
+        db.query(household_members)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            household_members.c.household_id == share_data.household_id,
+        )
+        .first()
+    )
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this household",
+        )
+
+    # Obtener miembros de la vivienda
+    members = (
+        db.query(User)
+        .join(household_members, User.id == household_members.c.user_id)
+        .filter(household_members.c.household_id == share_data.household_id)
+        .all()
+    )
+
+    if len(members) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Need at least 2 members to share expenses",
+        )
+
+    shared_count = 0
+    total_amount = 0.0
+
+    for expense_item in share_data.expenses:
+        # Obtener el gasto personal
+        personal_expense = (
+            db.query(PersonalExpense)
+            .filter(
+                PersonalExpense.id == expense_item.expense_id,
+                PersonalExpense.user_id == current_user.id,
+            )
+            .first()
+        )
+
+        if not personal_expense:
+            continue
+
+        # Crear el gasto compartido
+        expense = Expense(
+            household_id=share_data.household_id,
+            paid_by=current_user.id,
+            amount=personal_expense.amount,
+            description=personal_expense.description,
+            category_id=personal_expense.category_id,
+            date=personal_expense.date,
+            split_type=expense_item.split_type,
+        )
+        db.add(expense)
+        db.flush()
+
+        # Crear los splits
+        if expense_item.split_type == "equal":
+            split_amount = personal_expense.amount / len(members)
+            for member in members:
+                split = ExpenseSplit(
+                    expense_id=expense.id,
+                    user_id=member.id,
+                    amount=split_amount,
+                    percentage=100 / len(members),
+                    paid=(member.id == current_user.id),
+                )
+                db.add(split)
+        elif expense_item.split_type == "percentage" and expense_item.splits:
+            for split_data in expense_item.splits:
+                amount = (personal_expense.amount * split_data.percentage) / 100
+                split = ExpenseSplit(
+                    expense_id=expense.id,
+                    user_id=split_data.user_id,
+                    amount=amount,
+                    percentage=split_data.percentage,
+                    paid=(split_data.user_id == current_user.id),
+                )
+                db.add(split)
+
+        shared_count += 1
+        total_amount += personal_expense.amount
+
+    db.commit()
+
+    return ShareExpensesResponse(
+        shared=shared_count,
+        total=total_amount,
+        message=f"{shared_count} gastos compartidos correctamente",
+    )
