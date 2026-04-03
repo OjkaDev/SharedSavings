@@ -94,19 +94,16 @@ Proyecto-Cuenta/
 - [x] Eliminar vivienda (solo propietario)
 - [x] Ruta añadida en App.jsx
 
-### Fase 6: Gastos Compartidos
-- [ ] Crear página SharedExpenses
-- [ ] Modal nuevo gasto
-- [ ] Tabla de gastos
-- [ ] Eliminar gasto
+### Fase 6: Sistema de Gastos Unificado ✅
+- [x] Backend: Endpoint POST /api/expenses/share
+- [x] Backend: Endpoint GET /api/households/:id/debts
+- [x] Backend: Endpoint PUT /api/households/:id/pay-all
+- [x] Frontend: Modal ShareToHouseholdModal.jsx
+- [x] Frontend: Página PersonalFinances.jsx con checkboxes
+- [x] Frontend: Página HouseholdDetail.jsx con deudas
+- [x] Frontend: Rutas actualizadas en App.jsx
 
-### Fase 7: Finanzas Personales
-- [ ] Crear página PersonalFinances
-- [ ] Cards de resumen
-- [ ] Historial de transacciones
-- [ ] Modal nueva transacción
-
-### Fase 8: Categorías
+### Fase 7: Categorías y Configuración
 - [ ] Crear página Settings
 - [ ] Gestión de categorías
 - [ ] Categorías por defecto
@@ -156,8 +153,13 @@ Proyecto-Cuenta/
 - Modales para crear vivienda e invitar miembros
 - Componente HouseholdCard
 - Funcionalidad de eliminar vivienda
+- Página PersonalFinances con checkboxes y compartir gastos
+- Modal ShareToHouseholdModal para compartir a viviendas
+- Página HouseholdDetail con resumen de deudas
+- Endpoint para marcar todas las deudas como pagadas
+- Sistema de gastos unificado implementado
 
-**Siguiente paso:** Fase 6 - Gastos Compartidos (Frontend)
+**Siguiente paso:** Fase 7 - Categorías y Configuración
 
 ## Instrucciones para Ejecutar
 
