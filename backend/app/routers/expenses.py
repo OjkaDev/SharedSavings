@@ -238,9 +238,6 @@ def share_expenses_to_household(
         db.add(expense)
         db.flush()
 
-        # Vincular el gasto personal con el compartido
-        personal_expense.shared_expense_id = expense.id
-
         # Crear los splits
         if expense_item.split_type == "equal":
             split_amount = personal_expense.amount / len(members)
