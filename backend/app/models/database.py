@@ -83,6 +83,7 @@ class Expense(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
     split_type = Column(String(20), default="equal")
+    personal_expense_id = Column(Integer, ForeignKey("personal_expenses.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -90,6 +91,7 @@ class Expense(Base):
     paid_by_user = relationship("User", back_populates="expenses_paid")
     category = relationship("Category")
     splits = relationship("ExpenseSplit", back_populates="expense", cascade="all, delete-orphan")
+    personal_expense = relationship("PersonalExpense", foreign_keys=[personal_expense_id])
 
 
 class ExpenseSplit(Base):
@@ -117,8 +119,10 @@ class PersonalExpense(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     date = Column(DateTime(timezone=True), nullable=False)
     type = Column(String(20), default="expense")
+    shared_expense_id = Column(Integer, ForeignKey("expenses.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="personal_expenses")
     category = relationship("Category")
+    shared_expense = relationship("Expense", foreign_keys=[shared_expense_id])

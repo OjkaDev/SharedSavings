@@ -151,6 +151,7 @@ class PersonalExpenseResponse(BaseModel):
     category_id: Optional[int]
     date: datetime
     type: str
+    shared_expense_id: Optional[int] = None
     created_at: datetime
     category: Optional[CategoryResponse]
 

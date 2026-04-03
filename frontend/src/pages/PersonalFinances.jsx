@@ -70,6 +70,11 @@ export default function PersonalFinances() {
   }
 
   const deleteTransaction = async (id) => {
+    const transaction = transactions.find((t) => t.id === id)
+    if (transaction?.shared_expense_id) {
+      alert('Este gasto fue compartido. Descompártelo primero.')
+      return
+    }
     if (!confirm('¿Estás seguro de eliminar este registro?')) return
     try {
       await api.delete(`/personal/expenses/${id}`)
@@ -77,6 +82,18 @@ export default function PersonalFinances() {
       fetchData()
     } catch (error) {
       console.error('Error deleting transaction:', error)
+      alert(error.response?.data?.detail || 'Error al eliminar')
+    }
+  }
+
+  const unshareExpense = async (sharedExpenseId) => {
+    if (!confirm('¿Descompartir este gasto? Se eliminará de la vivienda.')) return
+    try {
+      await api.delete(`/expenses/${sharedExpenseId}/unshare`)
+      fetchData()
+    } catch (error) {
+      console.error('Error unsharing expense:', error)
+      alert('Error al descompartir')
     }
   }
 
@@ -277,7 +294,14 @@ export default function PersonalFinances() {
                       {new Date(transaction.date).toLocaleDateString('es-ES')}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
-                      {transaction.description || '-'}
+                      <div className="flex items-center">
+                        {transaction.description || '-'}
+                        {transaction.shared_expense_id && (
+                          <span className="ml-2 text-primary-500" title="Gasto compartido">
+                            🏠
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {transaction.category?.name || '-'}
@@ -304,12 +328,29 @@ export default function PersonalFinances() {
                       {parseFloat(transaction.amount).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => deleteTransaction(transaction.id)}
-                        className="text-gray-400 hover:text-red-500 transition"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
+                      <div className="flex justify-end space-x-2">
+                        {transaction.shared_expense_id && (
+                          <button
+                            onClick={() => unshareExpense(transaction.shared_expense_id)}
+                            className="text-amber-500 hover:text-amber-600 transition"
+                            title="Descompartir"
+                          >
+                            <HomeIcon className="h-5 w-5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteTransaction(transaction.id)}
+                          className={`transition ${
+                            transaction.shared_expense_id
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-400 hover:text-red-500'
+                          }`}
+                          disabled={!!transaction.shared_expense_id}
+                          title={transaction.shared_expense_id ? 'Descomparte primero' : 'Eliminar'}
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

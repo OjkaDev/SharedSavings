@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import {
   ArrowLeftIcon,
   CheckIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 export default function HouseholdDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
   const [household, setHousehold] = useState(null)
   const [debts, setDebts] = useState(null)
   const [expenses, setExpenses] = useState([])
@@ -50,6 +53,17 @@ export default function HouseholdDetail() {
       alert('Error al marcar pagos')
     } finally {
       setPayingAll(false)
+    }
+  }
+
+  const handleUnshare = async (expenseId) => {
+    if (!confirm('¿Descompartir este gasto? Se eliminará de la vivienda.')) return
+    try {
+      await api.delete(`/expenses/${expenseId}/unshare`)
+      await fetchData()
+    } catch (error) {
+      console.error('Error unsharing:', error)
+      alert('Error al descompartir')
     }
   }
 
@@ -220,6 +234,9 @@ export default function HouseholdDetail() {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Importe
                   </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -228,14 +245,25 @@ export default function HouseholdDetail() {
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(expense.date).toLocaleDateString('es-ES')}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {expense.description}
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
+                      {expense.description || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {expense.paid_by_user?.name || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-right text-gray-900">
                       €{parseFloat(expense.amount).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {expense.paid_by === user?.id && (
+                        <button
+                          onClick={() => handleUnshare(expense.id)}
+                          className="text-amber-500 hover:text-amber-600 transition text-sm"
+                          title="Descompartir gasto"
+                        >
+                          <XMarkIcon className="h-5 w-5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

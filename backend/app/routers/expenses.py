@@ -220,6 +220,10 @@ def share_expenses_to_household(
         if not personal_expense:
             continue
 
+        # Verificar que no haya sido compartido ya
+        if personal_expense.shared_expense_id:
+            continue
+
         # Crear el gasto compartido
         expense = Expense(
             household_id=share_data.household_id,
@@ -229,9 +233,13 @@ def share_expenses_to_household(
             category_id=personal_expense.category_id,
             date=personal_expense.date,
             split_type=expense_item.split_type,
+            personal_expense_id=personal_expense.id,
         )
         db.add(expense)
         db.flush()
+
+        # Vincular el gasto personal con el compartido
+        personal_expense.shared_expense_id = expense.id
 
         # Crear los splits
         if expense_item.split_type == "equal":
@@ -267,3 +275,39 @@ def share_expenses_to_household(
         total=total_amount,
         message=f"{shared_count} gastos compartidos correctamente",
     )
+
+
+@router.delete("/{expense_id}/unshare")
+def unshare_expense(
+    expense_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Descompartir un gasto (eliminar gasto compartido)"""
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found",
+        )
+
+    # Solo el que compartió puede descompartir
+    if expense.paid_by != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the payer can unshare this expense",
+        )
+
+    # Limpiar referencia en gasto personal
+    if expense.personal_expense_id:
+        personal_expense = db.query(PersonalExpense).filter(
+            PersonalExpense.id == expense.personal_expense_id
+        ).first()
+        if personal_expense:
+            personal_expense.shared_expense_id = None
+
+    # Eliminar gasto compartido
+    db.delete(expense)
+    db.commit()
+
+    return {"message": "Gasto descompartido correctamente"}

@@ -136,6 +136,13 @@ def delete_personal_expense(
             detail="Expense not found",
         )
 
+    # Verificar si fue compartido
+    if expense.shared_expense_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este gasto fue compartido. Descompártelo primero desde la vivienda.",
+        )
+
     db.delete(expense)
     db.commit()
     return {"message": "Expense deleted successfully"}
