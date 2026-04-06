@@ -103,10 +103,13 @@ Proyecto-Cuenta/
 - [x] Frontend: Página HouseholdDetail.jsx con deudas
 - [x] Frontend: Rutas actualizadas en App.jsx
 
-### Fase 7: Categorías y Configuración
-- [ ] Crear página Settings
-- [ ] Gestión de categorías
-- [ ] Categorías por defecto
+### Fase 7: Categorías y Configuración ✅
+- [x] Crear página Settings
+- [x] Gestión de categorías con selector de vivienda
+- [x] Categorías por defecto protegidas
+- [x] Selector de emojis con filtros por categoría (Alimentación, Hogar, Transporte, Ocio, Servicios, Otros)
+- [x] Sección perfil (cambiar nombre)
+- [x] Sección cambiar contraseña
 
 ### Fase 9: Gráficos y Reportes
 - [ ] Crear página Reports
@@ -132,7 +135,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-5):**
+**Completado (Fase 1-7):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado
@@ -158,8 +161,12 @@ Proyecto-Cuenta/
 - Página HouseholdDetail con resumen de deudas
 - Endpoint para marcar todas las deudas como pagadas
 - Sistema de gastos unificado implementado
+- Página Settings con gestión de categorías, perfil y contraseña
+- Selector de emojis con filtros por categoría
+- Sección de perfil: cambiar nombre
+- Sección de contraseña: cambiar contraseña con validación
 
-**Siguiente paso:** Fase 7 - Categorías y Configuración
+**Siguiente paso:** Fase 9 - Gráficos y Reportes
 
 ## Instrucciones para Ejecutar
 
