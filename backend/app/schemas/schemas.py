@@ -221,3 +221,17 @@ class DebtSummary(BaseModel):
     you_are_owed: float  # Total que te deben
     balance: float  # Balance neto
     debts: List[DebtDetail] = []
+
+
+# Monthly data schemas
+class MonthlyPersonalData(BaseModel):
+    month: int
+    income: float
+    expenses: float
+    balance: float
+
+
+class MonthlySharedData(BaseModel):
+    month: int
+    total: float
+    my_share: float

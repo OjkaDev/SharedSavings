@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense
-from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary
+from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/personal", tags=["Personal Expenses"])
@@ -104,6 +104,51 @@ def get_personal_summary(
         balance=float(income) - float(expenses),
         by_category=by_category,
     )
+
+
+@router.get("/monthly", response_model=List[MonthlyPersonalData])
+def get_monthly_personal(
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtener desglose mensual de ingresos y gastos personales"""
+    if not year:
+        year = datetime.utcnow().year
+
+    # Query agrupando por mes
+    monthly_data = (
+        db.query(
+            extract('month', PersonalExpense.date).label('month'),
+            PersonalExpense.type,
+            func.sum(PersonalExpense.amount).label('total'),
+        )
+        .filter(
+            PersonalExpense.user_id == current_user.id,
+            extract('year', PersonalExpense.date) == year,
+        )
+        .group_by('month', PersonalExpense.type)
+        .all()
+    )
+
+    # Inicializar los 12 meses con 0
+    result = []
+    for m in range(1, 13):
+        result.append({"month": m, "income": 0.0, "expenses": 0.0, "balance": 0.0})
+
+    # Rellenar con datos reales
+    for month_num, exp_type, total in monthly_data:
+        idx = int(month_num) - 1
+        if exp_type == "income":
+            result[idx]["income"] = float(total)
+        else:
+            result[idx]["expenses"] = float(total)
+
+    # Calcular balance
+    for item in result:
+        item["balance"] = item["income"] - item["expenses"]
+
+    return result
 
 
 @router.post("/expenses", response_model=PersonalExpenseResponse)

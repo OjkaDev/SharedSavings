@@ -57,7 +57,7 @@ Proyecto-Cuenta/
 - `categories`: Categorías de gastos
 - `personal_expenses`: Gastos/ingresos personales
 
-## Plan de Desarrollo (10 Fases)
+## Plan de Desarrollo (11 Fases)
 
 ### Fase 1: Configuración Frontend ✅
 - [x] Verificar Tailwind
@@ -111,20 +111,26 @@ Proyecto-Cuenta/
 - [x] Sección perfil (cambiar nombre)
 - [x] Sección cambiar contraseña
 
-### Fase 8: Gráficos y Reportes ✅
+### Fase 8: Filtros ✅
 - [x] Componente compartido DateFilter con selector de mes/año
 - [x] Utilidades de fecha (dateUtils.js)
 - [x] Backend: filtros de fecha en expenses, debts y personal summary
 - [x] PersonalFinances: cards y tabla reaccionan al filtro de fecha
 - [x] HouseholdDetail: deudas, balance y gastos reaccionan al filtro de fecha
 
-### Fase 9: Dashboard
+### Fase 9: Gráficos y Reportes
+- [ ] Crear página Reports
+- [ ] Gráfico de categorías
+- [ ] Gráfico mensual
+- [ ] Filtros por período
+
+### Fase 10: Dashboard
 - [ ] Crear página Dashboard
 - [ ] Cards de estadísticas
 - [ ] Actividad reciente
 - [ ] Accesos rápidos
 
-### Fase 10: Despliegue
+### Fase 11: Despliegue
 - [ ] Preparar frontend para Vercel
 - [ ] Preparar backend para Render
 - [ ] Configurar CORS
@@ -132,7 +138,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-8):**
+**Completado (Fase 1-11):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado

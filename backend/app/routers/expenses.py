@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, PersonalExpense
-from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse
+from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse, MonthlySharedData
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
@@ -39,6 +39,8 @@ def get_expenses(
 
 @router.get("/summary", response_model=ExpenseSummary)
 def get_expense_summary(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -47,14 +49,14 @@ def get_expense_summary(
     if not household_ids:
         return ExpenseSummary(total=0, pending=0, by_category=[])
 
-    total = (
-        db.query(func.sum(Expense.amount))
-        .filter(Expense.household_id.in_(household_ids))
-        .scalar()
-        or 0
-    )
+    total_query = db.query(func.sum(Expense.amount)).filter(Expense.household_id.in_(household_ids))
+    if start_date:
+        total_query = total_query.filter(Expense.date >= start_date)
+    if end_date:
+        total_query = total_query.filter(Expense.date <= end_date)
+    total = total_query.scalar() or 0
 
-    pending = (
+    pending_query = (
         db.query(func.sum(ExpenseSplit.amount))
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .filter(
@@ -63,17 +65,23 @@ def get_expense_summary(
             ExpenseSplit.paid == False,
             Expense.paid_by != current_user.id,
         )
-        .scalar()
-        or 0
     )
+    if start_date:
+        pending_query = pending_query.filter(Expense.date >= start_date)
+    if end_date:
+        pending_query = pending_query.filter(Expense.date <= end_date)
+    pending = pending_query.scalar() or 0
 
-    category_totals = (
+    category_query = (
         db.query(Category.name, func.sum(Expense.amount))
         .join(Expense, Expense.category_id == Category.id)
         .filter(Expense.household_id.in_(household_ids))
-        .group_by(Category.name)
-        .all()
     )
+    if start_date:
+        category_query = category_query.filter(Expense.date >= start_date)
+    if end_date:
+        category_query = category_query.filter(Expense.date <= end_date)
+    category_totals = category_query.group_by(Category.name).all()
 
     by_category = [{"name": name, "total": total} for name, total in category_totals]
 
@@ -309,3 +317,63 @@ def unshare_expense(
     db.commit()
 
     return {"message": "Gasto descompartido correctamente"}
+
+
+@router.get("/monthly", response_model=List[MonthlySharedData])
+def get_monthly_shared(
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtener desglose mensual de gastos compartidos"""
+    if not year:
+        year = datetime.utcnow().year
+
+    # Total de gastos compartidos por mes
+    monthly_total = (
+        db.query(
+            extract('month', Expense.date).label('month'),
+            func.sum(Expense.amount).label('total'),
+        )
+        .join(household_members, Expense.household_id == household_members.c.household_id)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            extract('year', Expense.date) == year,
+        )
+        .group_by('month')
+        .all()
+    )
+
+    # Mi parte de los gastos compartidos por mes
+    monthly_share = (
+        db.query(
+            extract('month', Expense.date).label('month'),
+            func.sum(ExpenseSplit.amount).label('my_share'),
+        )
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .join(household_members, Expense.household_id == household_members.c.household_id)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            ExpenseSplit.user_id == current_user.id,
+            extract('year', Expense.date) == year,
+        )
+        .group_by('month')
+        .all()
+    )
+
+    # Inicializar los 12 meses con 0
+    result = []
+    for m in range(1, 13):
+        result.append({"month": m, "total": 0.0, "my_share": 0.0})
+
+    # Rellenar totales
+    for month_num, total in monthly_total:
+        idx = int(month_num) - 1
+        result[idx]["total"] = float(total)
+
+    # Rellenar mi parte
+    for month_num, share in monthly_share:
+        idx = int(month_num) - 1
+        result[idx]["my_share"] = float(share)
+
+    return result
