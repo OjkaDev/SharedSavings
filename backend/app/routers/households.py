@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from app.models.database import get_db, User, Household, household_members, Category, Expense, ExpenseSplit
 from app.schemas.schemas import (
     HouseholdCreate,
@@ -155,6 +155,8 @@ def invite_member(
 @router.get("/{household_id}/debts", response_model=DebtSummary)
 def get_household_debts(
     household_id: int,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -182,7 +184,7 @@ def get_household_debts(
             continue
 
         # Lo que TÚ debes a este miembro (él pagó, tú tienes splits sin pagar)
-        owed_to_member = (
+        owed_to_member_query = (
             db.query(func.sum(ExpenseSplit.amount))
             .join(Expense, ExpenseSplit.expense_id == Expense.id)
             .filter(
@@ -191,12 +193,15 @@ def get_household_debts(
                 ExpenseSplit.user_id == current_user.id,
                 ExpenseSplit.paid == False,
             )
-            .scalar()
-            or 0
         )
+        if start_date:
+            owed_to_member_query = owed_to_member_query.filter(Expense.date >= start_date)
+        if end_date:
+            owed_to_member_query = owed_to_member_query.filter(Expense.date <= end_date)
+        owed_to_member = owed_to_member_query.scalar() or 0
 
         # Lo que este miembro TE debe a ti (tú pagaste, él tiene splits sin pagar)
-        member_owes = (
+        member_owes_query = (
             db.query(func.sum(ExpenseSplit.amount))
             .join(Expense, ExpenseSplit.expense_id == Expense.id)
             .filter(
@@ -205,9 +210,12 @@ def get_household_debts(
                 ExpenseSplit.user_id == member.id,
                 ExpenseSplit.paid == False,
             )
-            .scalar()
-            or 0
         )
+        if start_date:
+            member_owes_query = member_owes_query.filter(Expense.date >= start_date)
+        if end_date:
+            member_owes_query = member_owes_query.filter(Expense.date <= end_date)
+        member_owes = member_owes_query.scalar() or 0
 
         net_amount = member_owes - owed_to_member
 

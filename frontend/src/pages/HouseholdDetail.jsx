@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import DateFilter from '../components/DateFilter'
+import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -19,17 +21,18 @@ export default function HouseholdDetail() {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [payingAll, setPayingAll] = useState(false)
+  const [dateRange, setDateRange] = useState(() => getMonthRange(getCurrentMonth().month, getCurrentMonth().year))
 
   useEffect(() => {
     fetchData()
-  }, [id])
+  }, [id, dateRange])
 
   const fetchData = async () => {
     try {
       const [householdRes, debtsRes, expensesRes] = await Promise.all([
         api.get(`/households/${id}`),
-        api.get(`/households/${id}/debts`),
-        api.get(`/expenses?household_id=${id}`),
+        api.get(`/households/${id}/debts`, { params: dateRange }),
+        api.get(`/expenses`, { params: { household_id: id, ...dateRange } }),
       ])
       setHousehold(householdRes.data)
       setDebts(debtsRes.data)
@@ -102,6 +105,8 @@ export default function HouseholdDetail() {
           </p>
         </div>
       </div>
+
+      <DateFilter onChange={setDateRange} />
 
       {/* Resumen de deudas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

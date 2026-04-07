@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
+import DateFilter from '../components/DateFilter'
+import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
 import {
   PlusIcon,
   ArrowUpIcon,
@@ -18,6 +20,7 @@ export default function PersonalFinances() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [summary, setSummary] = useState({ income: 0, expenses: 0, balance: 0 })
+  const [dateRange, setDateRange] = useState(() => getMonthRange(getCurrentMonth().month, getCurrentMonth().year))
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
@@ -28,14 +31,14 @@ export default function PersonalFinances() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [dateRange])
 
   const fetchData = async () => {
     try {
       const [transactionsRes, categoriesRes, summaryRes] = await Promise.all([
-        api.get('/personal/expenses'),
+        api.get('/personal/expenses', { params: dateRange }),
         api.get('/categories'),
-        api.get('/personal/summary'),
+        api.get('/personal/summary', { params: dateRange }),
       ])
       setTransactions(transactionsRes.data)
       setCategories(categoriesRes.data)
@@ -164,6 +167,8 @@ export default function PersonalFinances() {
           </button>
         </div>
       </div>
+
+      <DateFilter onChange={setDateRange} />
 
       {/* Cards de resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -294,17 +299,10 @@ export default function PersonalFinances() {
                       {new Date(transaction.date).toLocaleDateString('es-ES')}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
-                      <div className="flex items-center">
-                        {transaction.description || '-'}
-                        {transaction.shared_expense_id && (
-                          <span className="ml-2 text-primary-500" title="Gasto compartido">
-                            🏠
-                          </span>
-                        )}
-                      </div>
+                      {transaction.description || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {transaction.category?.name || '-'}
+                      {transaction.category ? `${transaction.category.icon} ${transaction.category.name}` : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span

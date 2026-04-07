@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, PersonalExpense
 from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse
@@ -12,8 +12,10 @@ router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
 @router.get("/", response_model=List[ExpenseResponse])
 def get_expenses(
-    household_id: int = None,
-    category_id: int = None,
+    household_id: Optional[int] = None,
+    category_id: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -27,6 +29,10 @@ def get_expenses(
         query = query.filter(Expense.household_id == household_id)
     if category_id:
         query = query.filter(Expense.category_id == category_id)
+    if start_date:
+        query = query.filter(Expense.date >= start_date)
+    if end_date:
+        query = query.filter(Expense.date <= end_date)
 
     return query.order_by(Expense.date.desc()).all()
 

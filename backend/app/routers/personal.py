@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary
@@ -57,28 +57,19 @@ def get_personal_expenses(
 
 @router.get("/summary", response_model=PersonalSummary)
 def get_personal_summary(
-    period: str = "month",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    now = datetime.utcnow()
-
-    if period == "month":
-        start_date = datetime(now.year, now.month, 1)
-    elif period == "year":
-        start_date = datetime(now.year, 1, 1)
-    elif period == "quarter":
-        quarter_start_month = ((now.month - 1) // 3) * 3 + 1
-        start_date = datetime(now.year, quarter_start_month, 1)
-    else:
-        start_date = None
-
     query = db.query(PersonalExpense).filter(
         PersonalExpense.user_id == current_user.id
     )
 
     if start_date:
         query = query.filter(PersonalExpense.date >= start_date)
+    if end_date:
+        query = query.filter(PersonalExpense.date <= end_date)
 
     income = (
         query.filter(PersonalExpense.type == "income")
