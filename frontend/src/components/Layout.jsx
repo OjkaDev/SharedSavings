@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext'
 import {
   HomeIcon,
   UserGroupIcon,
-  CurrencyDollarIcon,
   WalletIcon,
   ChartBarIcon,
   Cog6ToothIcon,
@@ -13,7 +12,6 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Vivienda', href: '/household', icon: UserGroupIcon },
-  { name: 'Gastos Compartidos', href: '/shared-expenses', icon: CurrencyDollarIcon },
   { name: 'Finanzas Personales', href: '/personal', icon: WalletIcon },
   { name: 'Informes', href: '/reports', icon: ChartBarIcon },
   { name: 'Configuración', href: '/settings', icon: Cog6ToothIcon },

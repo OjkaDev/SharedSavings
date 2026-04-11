@@ -118,19 +118,35 @@ Proyecto-Cuenta/
 - [x] PersonalFinances: cards y tabla reaccionan al filtro de fecha
 - [x] HouseholdDetail: deudas, balance y gastos reaccionan al filtro de fecha
 
-### Fase 9: Gráficos y Reportes
-- [ ] Crear página Reports
-- [ ] Gráfico de categorías
-- [ ] Gráfico mensual
-- [ ] Filtros por período
+### Fase 9: Gráficos y Reportes ✅
+- [x] Crear página Reports
+- [x] Gráfico de categorías (donut)
+- [x] Gráfico mensual (barras y línea)
+- [x] Gráfico de ahorro mensual
+- [x] Gráfico de gastos compartidos vs personales
+- [x] Backend: GET /api/personal/monthly
+- [x] Backend: GET /api/expenses/monthly
+- [x] Backend: filtros de fecha en expenses/summary
+- [x] Selector de año + DateFilter
 
-### Fase 10: Dashboard
-- [ ] Crear página Dashboard
-- [ ] Cards de estadísticas
-- [ ] Actividad reciente
-- [ ] Accesos rápidos
+### Fase 10: Dashboard ✅
+- [x] Eliminar link roto "Gastos Compartidos" del nav
+- [x] Dashboard con datos reales del mes actual
+- [x] Cards: Viviendas, Gastos Compartidos, Gastos Personales, Pagos Pendientes
+- [x] Resumen del mes (total gastado)
+- [x] Accesos rápidos actualizados
 
-### Fase 11: Despliegue
+### Fase 11: Ajustes y Bug
+- [ ] Filtrado de fecha repetido en Reports.jsx
+- [ ] Ajuste de estadísticas en PersonalFinances.jsx
+- [ ] Cambio en Settings.jsx, interfaz lateral
+- [ ] Modificación de categorías y mejoras en Settings.jsx
+- [ ] Mejorar login y registro (Correo confirmación?)
+- [ ] Revision BBDD y problemas de seguridad.
+- [ ] Gastos compartidos deben contar para el usuario solo la parte proporcional.
+- [ ] Mejora filtros en PersonalFinances.jsx y HouseholdDetail.jsx.
+
+### Fase 12: Despliegue
 - [ ] Preparar frontend para Vercel
 - [ ] Preparar backend para Render
 - [ ] Configurar CORS
@@ -138,7 +154,7 @@ Proyecto-Cuenta/
 
 ## Estado Actual
 
-**Completado (Fase 1-11):**
+**Completado (Fase 1-9):**
 - Estructura del proyecto creada
 - Frontend funcional con Tailwind CSS v4
 - React Router configurado
@@ -171,8 +187,12 @@ Proyecto-Cuenta/
 - Filtros de fecha por mes/año en PersonalFinances y HouseholdDetail
 - Componente compartido DateFilter reutilizable para Reports
 - Backend con filtros de fecha en expenses, debts y personal summary
+- Página Reports con 5 gráficas (ingresos vs gastos, categorías, evolución, ahorro, compartidos)
+- Backend: endpoints mensuales para datos personales y compartidos
+- Dashboard con datos reales del mes actual
+- Nav limpiado (eliminado link roto a Gastos Compartidos)
 
-**Siguiente paso:** Fase 9 - Dashboard
+**Siguiente paso:** Fase 11 - Ajustes y Bug fixing
 
 ## Instrucciones para Ejecutar
 
