@@ -356,7 +356,7 @@ export default function PersonalFinances() {
                     </td>
                     <td className="table-cell text-right">
                       <div className="flex justify-end space-x-2">
-                        {transaction.shared_expense_id && (
+                        {transaction.shared_expense_id && !transaction.is_debt && (
                           <button
                             onClick={() => unshareExpense(transaction.shared_expense_id)}
                             className="text-yellow-400 hover:text-yellow-300 transition"
@@ -368,12 +368,18 @@ export default function PersonalFinances() {
                         <button
                           onClick={() => deleteTransaction(transaction.id)}
                           className={`transition ${
-                            transaction.shared_expense_id
+                            transaction.is_debt || transaction.shared_expense_id
                               ? 'text-dark-600 cursor-not-allowed'
                               : 'text-dark-400 hover:text-red-400'
                           }`}
-                          disabled={!!transaction.shared_expense_id}
-                          title={transaction.shared_expense_id ? 'Descomparte primero' : 'Eliminar'}
+                          disabled={transaction.is_debt || !!transaction.shared_expense_id}
+                          title={
+                            transaction.is_debt
+                              ? 'No puedes eliminar gastos de otros'
+                              : transaction.shared_expense_id
+                              ? 'Descomparte primero'
+                              : 'Eliminar'
+                          }
                         >
                           <TrashIcon className="h-5 w-5" />
                         </button>

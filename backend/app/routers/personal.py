@@ -134,6 +134,7 @@ def get_personal_summary(
         or 0
     )
 
+    # Gastos personales
     all_expenses = query.filter(PersonalExpense.type == "expense").all()
     
     personal_only_expenses = 0.0
@@ -167,10 +168,24 @@ def get_personal_summary(
 
     by_category = [{"name": name, "total": float(total)} for name, total in by_category_dict.items()]
 
+    # Agregar deudas no pagadas al total de gastos
+    debt_total = (
+        db.query(func.sum(ExpenseSplit.amount))
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .filter(
+            ExpenseSplit.user_id == current_user.id,
+            Expense.paid_by != current_user.id,
+            ExpenseSplit.paid == False,
+        )
+        .scalar()
+        or 0
+    )
+    total_expenses_with_debts = float(personal_only_expenses) + float(debt_total)
+
     return PersonalSummary(
         income=float(income),
-        expenses=float(personal_only_expenses),
-        balance=float(income) - float(personal_only_expenses),
+        expenses=total_expenses_with_debts,
+        balance=float(income) - total_expenses_with_debts,
         by_category=by_category,
     )
 
