@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import datetime
-from app.models.database import get_db, User, PersonalExpense, Category, Expense
+from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData
 from app.utils.auth import get_current_user
 
@@ -34,10 +34,19 @@ def get_personal_expenses(
 
     expenses = query.order_by(PersonalExpense.date.desc()).all()
     
-    # Añadir shared_expense_id consultando la tabla expenses
     result = []
     for exp in expenses:
         shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        shared_expense_id = shared.id if shared else None
+        
+        my_share = None
+        if shared_expense_id:
+            split = db.query(ExpenseSplit).filter(
+                ExpenseSplit.expense_id == shared_expense_id,
+                ExpenseSplit.user_id == current_user.id,
+            ).first()
+            my_share = split.amount if split else None
+        
         exp_dict = {
             "id": exp.id,
             "user_id": exp.user_id,
@@ -48,7 +57,8 @@ def get_personal_expenses(
             "type": exp.type,
             "created_at": exp.created_at,
             "category": exp.category,
-            "shared_expense_id": shared.id if shared else None,
+            "shared_expense_id": shared_expense_id,
+            "my_share": my_share,
         }
         result.append(exp_dict)
     
@@ -78,30 +88,43 @@ def get_personal_summary(
         or 0
     )
 
-    expenses = (
-        query.filter(PersonalExpense.type == "expense")
-        .with_entities(func.sum(PersonalExpense.amount))
-        .scalar()
-        or 0
-    )
+    all_expenses = query.filter(PersonalExpense.type == "expense").all()
+    
+    personal_only_expenses = 0.0
+    for exp in all_expenses:
+        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        if shared:
+            split = db.query(ExpenseSplit).filter(
+                ExpenseSplit.expense_id == shared.id,
+                ExpenseSplit.user_id == current_user.id,
+            ).first()
+            if split:
+                personal_only_expenses += split.amount
+        else:
+            personal_only_expenses += exp.amount
 
-    category_totals = (
-        query.join(Category, PersonalExpense.category_id == Category.id, isouter=True)
-        .filter(PersonalExpense.type == "expense")
-        .group_by(Category.name)
-        .with_entities(
-            func.coalesce(Category.name, "Sin categoría"),
-            func.sum(PersonalExpense.amount),
-        )
-        .all()
-    )
+    category_totals = []
+    by_category_dict = {}
+    for exp in all_expenses:
+        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        if shared:
+            split = db.query(ExpenseSplit).filter(
+                ExpenseSplit.expense_id == shared.id,
+                ExpenseSplit.user_id == current_user.id,
+            ).first()
+            amount = split.amount if split else 0
+        else:
+            amount = exp.amount
+        
+        cat_name = exp.category.name if exp.category else "Sin categoría"
+        by_category_dict[cat_name] = by_category_dict.get(cat_name, 0) + amount
 
-    by_category = [{"name": name, "total": total} for name, total in category_totals]
+    by_category = [{"name": name, "total": float(total)} for name, total in by_category_dict.items()]
 
     return PersonalSummary(
         income=float(income),
-        expenses=float(expenses),
-        balance=float(income) - float(expenses),
+        expenses=float(personal_only_expenses),
+        balance=float(income) - float(personal_only_expenses),
         by_category=by_category,
     )
 

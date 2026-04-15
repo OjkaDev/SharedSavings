@@ -324,6 +324,12 @@ export default function PersonalFinances() {
                     >
                       {transaction.type === 'income' ? '+' : '-'}€
                       {parseFloat(transaction.amount).toFixed(2)}
+                      {transaction.my_share !== null && transaction.my_share !== undefined && (
+                        <span className="block text-xs text-purple-600">
+                          (€
+                          {parseFloat(transaction.my_share).toFixed(2)} compartido)
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end space-x-2">

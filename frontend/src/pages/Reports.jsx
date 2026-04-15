@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import api from '../services/api'
 import DateFilter from '../components/DateFilter'
-import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange, getAvailableYears } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -61,7 +61,6 @@ const CHART_COLORS = [
 
 export default function Reports() {
   const currentYear = new Date().getFullYear()
-  const [year, setYear] = useState(currentYear)
   const [dateRange, setDateRange] = useState(() => getMonthRange(getCurrentMonth().month, getCurrentMonth().year))
   const [monthlyPersonal, setMonthlyPersonal] = useState([])
   const [monthlyShared, setMonthlyShared] = useState([])
@@ -69,9 +68,11 @@ export default function Reports() {
   const [sharedSummary, setSharedSummary] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const year = useMemo(() => dateRange?.year || currentYear, [dateRange, currentYear])
+
   useEffect(() => {
     fetchData()
-  }, [year, dateRange])
+  }, [dateRange])
 
   const fetchData = async () => {
     try {
@@ -249,16 +250,7 @@ export default function Reports() {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="input-field py-1.5 text-sm w-24"
-          >
-            {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <DateFilter onChange={setDateRange} />
+          <DateFilter onChange={setDateRange} year={currentYear} />
         </div>
       </div>
 

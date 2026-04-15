@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { MONTHS, getCurrentMonth, getAvailableYears, getMonthRange } from '../utils/dateUtils'
 
-export default function DateFilter({ value, onChange }) {
+export default function DateFilter({ value, onChange, year: initialYear }) {
   const [selectedMonth, setSelectedMonth] = useState(value?.month || getCurrentMonth().month)
-  const [selectedYear, setSelectedYear] = useState(value?.year || getCurrentMonth().year)
+  const [selectedYear, setSelectedYear] = useState(value?.year || initialYear || getCurrentMonth().year)
 
   useEffect(() => {
     const range = getMonthRange(selectedMonth, selectedYear)
