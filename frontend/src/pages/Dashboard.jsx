@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
-import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowRightIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon } from '@heroicons/react/24/outline'
 import { MONTHS } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
@@ -157,15 +157,15 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {stats.map((stat) => (
-          <div key={stat.name} className="card p-5 flex flex-col text-center">
-            <p className="text-dark-300 text-sm font-medium mb-3">{stat.name}</p>
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                <stat.icon className="h-4 w-4 text-white" />
+          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
+            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
+            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
+                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
               </div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
             </div>
             <p className="text-dark-500 text-xs">Total de {monthName}</p>
           </div>
@@ -174,16 +174,16 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Resumen Financiero unificado */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-dark-50 mb-6">Resumen Financiero</h2>
-          <div className="flex items-center gap-8">
+        <div className="card p-4 md:p-6">
+          <h2 className="text-lg font-semibold text-dark-50 mb-4 md:mb-6">Resumen Financiero</h2>
+          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
             {/* Quesito */}
-            <div className="w-40 h-40 flex-shrink-0">
+            <div className="w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
               <Doughnut data={pieData} options={pieOptions} />
             </div>
             
             {/* Métricas */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 w-full space-y-3 md:space-y-4">
               {financeMetrics.map((metric) => (
                 <div key={metric.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -203,20 +203,29 @@ export default function Dashboard() {
         </div>
 
         {/* Accesos Rápidos */}
-        <div className="card">
+        <div className="card p-6">
           <h2 className="text-lg font-semibold text-dark-50 mb-6">Accesos Rápidos</h2>
-          <div className="space-y-3">
-            <Link to="/personal" className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group">
-              <span className="text-dark-200 group-hover:text-primary-400 transition-colors">Registrar gasto personal</span>
-              <ArrowRightIcon className="h-5 w-5 text-dark-500 group-hover:text-primary-400 transition-colors" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <Link to="/personal?action=new" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mb-2 md:mb-3">
+                <PlusIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              </div>
+              <p className="text-dark-100 font-medium text-sm md:text-base">Nuevo Gasto</p>
+              <p className="text-dark-500 text-xs mt-1">Registra un gasto</p>
             </Link>
-            <Link to="/household" className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group">
-              <span className="text-dark-200 group-hover:text-primary-400 transition-colors">Gestionar vivienda</span>
-              <ArrowRightIcon className="h-5 w-5 text-dark-500 group-hover:text-primary-400 transition-colors" />
+            <Link to="/household" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 md:mb-3">
+                <HomeIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              </div>
+              <p className="text-dark-100 font-medium text-sm md:text-base">Mi Vivienda</p>
+              <p className="text-dark-500 text-xs mt-1">Administra tu hogar</p>
             </Link>
-            <Link to="/reports" className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group">
-              <span className="text-dark-200 group-hover:text-primary-400 transition-colors">Ver informes</span>
-              <ArrowRightIcon className="h-5 w-5 text-dark-500 group-hover:text-primary-400 transition-colors" />
+            <Link to="/reports" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mb-2 md:mb-3">
+                <DocumentChartBarIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              </div>
+              <p className="text-dark-100 font-medium text-sm md:text-base">Informes</p>
+              <p className="text-dark-500 text-xs mt-1">Estadísticas detalladas</p>
             </Link>
           </div>
         </div>

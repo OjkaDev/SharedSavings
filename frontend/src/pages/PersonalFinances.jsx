@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
 import DateFilter from '../components/DateFilter'
@@ -13,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function PersonalFinances() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,6 +34,13 @@ export default function PersonalFinances() {
   useEffect(() => {
     fetchData()
   }, [dateRange])
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      setShowModal(true)
+      setSearchParams({})
+    }
+  }, [searchParams, setSearchParams])
 
   const fetchData = async () => {
     try {
