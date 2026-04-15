@@ -72,7 +72,6 @@ def get_personal_expenses(
     debt_filters = [
         ExpenseSplit.user_id == current_user.id,
         Expense.paid_by != current_user.id,
-        ExpenseSplit.paid == False,
     ]
     if start_date:
         debt_filters.append(Expense.date >= start_date)
@@ -102,6 +101,7 @@ def get_personal_expenses(
             "my_share": debt.amount,
             "is_shared_by_me": False,
             "is_debt": True,
+            "is_paid": debt.paid,
         }
         result.append(exp_dict)
     

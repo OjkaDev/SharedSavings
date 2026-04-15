@@ -301,20 +301,30 @@ export default function PersonalFinances() {
                     <td className="table-cell">
                       <span
                         className={`badge ${
-                          transaction.is_debt
+                          transaction.is_debt && !transaction.is_paid
+                            ? 'bg-orange-100 text-orange-800'
+                            : transaction.is_debt && transaction.is_paid
                             ? 'bg-purple-100 text-purple-800'
                             : transaction.type === 'income'
                             ? 'badge-success'
                             : 'badge-danger'
                         }`}
                       >
-                        {transaction.is_debt ? 'Deuda' : transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
+                        {transaction.is_debt && !transaction.is_paid
+                          ? 'Deuda'
+                          : transaction.is_debt && transaction.is_paid
+                          ? 'Pagado'
+                          : transaction.type === 'income'
+                          ? 'Ingreso'
+                          : 'Gasto'}
                       </span>
                     </td>
 <td
                       className={`px-4 py-3 text-sm font-semibold text-right ${
-                        transaction.is_debt
-                          ? 'text-purple-600'
+                        transaction.is_debt && !transaction.is_paid
+                          ? 'text-orange-600'
+                          : transaction.is_debt && transaction.is_paid
+                          ? 'text-red-600'
                           : transaction.type === 'income'
                           ? 'text-green-600'
                           : 'text-red-600'
@@ -333,9 +343,14 @@ export default function PersonalFinances() {
                           {parseFloat(transaction.my_share).toFixed(2)} compartido)
                         </span>
                       )}
-                      {transaction.is_debt && (
-                        <span className="block text-xs text-purple-600">
+                      {transaction.is_debt && !transaction.is_paid && (
+                        <span className="block text-xs text-orange-600">
                           (debes)
+                        </span>
+                      )}
+                      {transaction.is_debt && transaction.is_paid && (
+                        <span className="block text-xs text-purple-600">
+                          (te deben)
                         </span>
                       )}
                     </td>
