@@ -285,7 +285,8 @@ export default function PersonalFinances() {
                         type="checkbox"
                         checked={selectedIds.includes(transaction.id)}
                         onChange={() => toggleSelect(transaction.id)}
-                        className="rounded bg-dark-800 border-dark-600"
+                        disabled={transaction.is_debt}
+                        className="rounded bg-dark-800 border-dark-600 disabled:opacity-50"
                       />
                     </td>
                     <td className="table-cell">
@@ -300,27 +301,41 @@ export default function PersonalFinances() {
                     <td className="table-cell">
                       <span
                         className={`badge ${
-                          transaction.type === 'income'
+                          transaction.is_debt
+                            ? 'bg-purple-100 text-purple-800'
+                            : transaction.type === 'income'
                             ? 'badge-success'
                             : 'badge-danger'
                         }`}
                       >
-                        {transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
+                        {transaction.is_debt ? 'Deuda' : transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
                       </span>
                     </td>
-                    <td
-                      className={`table-cell font-semibold text-right ${
-                        transaction.type === 'income'
-                          ? 'text-green-400'
-                          : 'text-red-400'
+<td
+                      className={`px-4 py-3 text-sm font-semibold text-right ${
+                        transaction.is_debt
+                          ? 'text-purple-600'
+                          : transaction.type === 'income'
+                          ? 'text-green-600'
+                          : 'text-red-600'
                       }`}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}€
-                      {parseFloat(transaction.amount).toFixed(2)}
-                      {transaction.my_share !== null && transaction.my_share !== undefined && (
-                        <span className="block text-xs text-purple-400">
+                      {transaction.is_debt ? (
+                        <>€{parseFloat(transaction.amount).toFixed(2)}</>
+                      ) : transaction.type === 'income' ? (
+                        <>+€{parseFloat(transaction.amount).toFixed(2)}</>
+                      ) : (
+                        <>-€{parseFloat(transaction.amount).toFixed(2)}</>
+                      )}
+                      {!transaction.is_debt && transaction.my_share !== null && transaction.my_share !== undefined && (
+                        <span className="block text-xs text-purple-600">
                           (€
                           {parseFloat(transaction.my_share).toFixed(2)} compartido)
+                        </span>
+                      )}
+                      {transaction.is_debt && (
+                        <span className="block text-xs text-purple-600">
+                          (debes)
                         </span>
                       )}
                     </td>

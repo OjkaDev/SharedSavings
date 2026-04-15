@@ -19,6 +19,8 @@ def get_personal_expenses(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    from app.models.database import Category
+    
     query = db.query(PersonalExpense).filter(
         PersonalExpense.user_id == current_user.id
     ).options(joinedload(PersonalExpense.category))
@@ -40,12 +42,14 @@ def get_personal_expenses(
         shared_expense_id = shared.id if shared else None
         
         my_share = None
+        is_shared_by_me = False
         if shared_expense_id:
             split = db.query(ExpenseSplit).filter(
                 ExpenseSplit.expense_id == shared_expense_id,
                 ExpenseSplit.user_id == current_user.id,
             ).first()
             my_share = split.amount if split else None
+            is_shared_by_me = True
         
         exp_dict = {
             "id": exp.id,
@@ -59,8 +63,50 @@ def get_personal_expenses(
             "category": exp.category,
             "shared_expense_id": shared_expense_id,
             "my_share": my_share,
+            "is_shared_by_me": is_shared_by_me,
+            "is_debt": False,
         }
         result.append(exp_dict)
+    
+    # Obtener gastos de otros donde debo dinero
+    debt_filters = [
+        ExpenseSplit.user_id == current_user.id,
+        Expense.paid_by != current_user.id,
+        ExpenseSplit.paid == False,
+    ]
+    if start_date:
+        debt_filters.append(Expense.date >= start_date)
+    if end_date:
+        debt_filters.append(Expense.date <= end_date)
+    
+    debts = (
+        db.query(ExpenseSplit)
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .join(Category, Expense.category_id == Category.id, isouter=True)
+        .filter(*debt_filters)
+        .all()
+    )
+    
+    for debt in debts:
+        exp_dict = {
+            "id": -debt.expense.id,
+            "user_id": debt.expense.paid_by,
+            "amount": debt.amount,
+            "description": debt.expense.description,
+            "category_id": debt.expense.category_id,
+            "date": debt.expense.date,
+            "type": "expense",
+            "created_at": debt.expense.created_at,
+            "category": debt.expense.category,
+            "shared_expense_id": debt.expense.id,
+            "my_share": debt.amount,
+            "is_shared_by_me": False,
+            "is_debt": True,
+        }
+        result.append(exp_dict)
+    
+    # Ordenar por fecha descendente
+    result.sort(key=lambda x: x["date"], reverse=True)
     
     return result
 

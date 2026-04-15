@@ -155,6 +155,8 @@ class PersonalExpenseResponse(BaseModel):
     created_at: datetime
     category: Optional[CategoryResponse]
     my_share: Optional[float] = None
+    is_shared_by_me: Optional[bool] = None
+    is_debt: Optional[bool] = None
 
     class Config:
         from_attributes = True
