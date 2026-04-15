@@ -138,12 +138,12 @@ Proyecto-Cuenta/
 
 ### Fase 11: Ajustes y Bug
 - [x] Filtrado de fecha repetido en Reports.jsx
-- [ ] Ajuste con los gastos compartidos, si se comparte un gasto debe aparecer tú parte en PersonalFinances.jsx
+- [ ] Revisar en reports.jsx los gráficos a poner.
 - [ ] Cambio en Settings.jsx, interfaz lateral
 - [ ] Modificación de categorías y mejoras en Settings.jsx
 - [ ] Mejorar login y registro (Correo confirmación?)
 - [ ] Revision BBDD y problemas de seguridad.
-- [ ] Gastos compartidos deben contar para el usuario solo la parte proporcional.
+- [x] Gastos compartidos deben contar para el usuario solo la parte proporcional.
 - [ ] Mejora filtros en PersonalFinances.jsx y HouseholdDetail.jsx.
 
 ### Fase 12: Despliegue

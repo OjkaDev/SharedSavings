@@ -5,7 +5,7 @@ import api from '../services/api'
 export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selectedExpenses }) {
   const [households, setHouseholds] = useState([])
   const [selectedHousehold, setSelectedHousehold] = useState(null)
-  const [step, setStep] = useState(1) // 1: seleccionar vivienda, 2: configurar división
+  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -41,7 +41,6 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
     try {
       const response = await api.get(`/households/${householdId}`)
       setMembers(response.data.members || [])
-      // Inicializar configuración de splits
       const configs = {}
       selectedExpenses.forEach((exp) => {
         configs[exp.id] = {
@@ -126,46 +125,46 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
   const totalAmount = selectedExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="modal-overlay">
       <div className="card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-dark-100">
             Compartir Gastos a Vivienda
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-dark-400 hover:text-dark-200 transition">
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm mb-4">
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl text-sm mb-4">
             {success}
           </div>
         )}
 
         {step === 1 && (
           <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                Gastos seleccionados: <strong>{selectedExpenses.length}</strong>
+            <div className="mb-6 p-4 bg-dark-800/50 rounded-xl border border-dark-700/50">
+              <p className="text-dark-300 text-sm mb-1">
+                Gastos seleccionados: <span className="text-dark-100 font-medium">{selectedExpenses.length}</span>
               </p>
-              <p className="text-sm text-gray-600">
-                Total: <strong>€{totalAmount.toFixed(2)}</strong>
+              <p className="text-dark-300 text-sm">
+                Total: <span className="text-primary-400 font-medium">€{totalAmount.toFixed(2)}</span>
               </p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-dark-300 mb-3">
                 Seleccionar vivienda
               </label>
               {households.length === 0 ? (
-                <p className="text-gray-500 text-sm">
+                <p className="text-dark-400 text-sm">
                   No tienes viviendas. Crea una primero.
                 </p>
               ) : (
@@ -173,10 +172,10 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
                   {households.map((household) => (
                     <label
                       key={household.id}
-                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition ${
+                      className={`flex items-center p-4 border rounded-xl cursor-pointer transition ${
                         selectedHousehold?.id === household.id
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-primary-500 bg-primary-500/10'
+                          : 'border-dark-700 hover:border-dark-600 bg-dark-800/30'
                       }`}
                     >
                       <input
@@ -184,11 +183,11 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
                         name="household"
                         checked={selectedHousehold?.id === household.id}
                         onChange={() => setSelectedHousehold(household)}
-                        className="mr-3"
+                        className="mr-3 accent-primary-500"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">{household.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-dark-100">{household.name}</p>
+                        <p className="text-sm text-dark-400">
                           {household.members?.length || 0} miembros
                         </p>
                       </div>
@@ -215,54 +214,54 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
 
         {step === 2 && (
           <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Vivienda: <strong>{selectedHousehold?.name}</strong>
+            <div className="mb-6 p-4 bg-dark-800/50 rounded-xl border border-dark-700/50">
+              <p className="text-dark-300 text-sm">
+                Vivienda: <span className="text-dark-100 font-medium">{selectedHousehold?.name}</span>
               </p>
             </div>
 
             <div className="space-y-4 mb-6">
               {selectedExpenses.map((expense) => (
-                <div key={expense.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-3">
+                <div key={expense.id} className="border border-dark-700 rounded-xl p-4 bg-dark-800/30">
+                  <div className="flex justify-between items-center mb-4">
                     <div>
-                      <p className="font-medium text-gray-900">{expense.description}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-dark-100">{expense.description || 'Sin descripción'}</p>
+                      <p className="text-sm text-primary-400">
                         €{parseFloat(expense.amount).toFixed(2)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="flex items-center">
+                  <div className="space-y-3">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
                         name={`split-${expense.id}`}
                         checked={splitConfigs[expense.id]?.split_type === 'equal'}
                         onChange={() => handleSplitTypeChange(expense.id, 'equal')}
-                        className="mr-2"
+                        className="mr-3 accent-primary-500"
                       />
-                      <span className="text-sm">Partes iguales</span>
+                      <span className="text-dark-300 text-sm">Partes iguales</span>
                     </label>
 
-                    <label className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
                         name={`split-${expense.id}`}
                         checked={splitConfigs[expense.id]?.split_type === 'percentage'}
                         onChange={() => handleSplitTypeChange(expense.id, 'percentage')}
-                        className="mr-2"
+                        className="mr-3 accent-primary-500"
                       />
-                      <span className="text-sm">Porcentajes personalizados</span>
+                      <span className="text-dark-300 text-sm">Porcentajes personalizados</span>
                     </label>
 
                     {splitConfigs[expense.id]?.split_type === 'percentage' && (
-                      <div className="ml-6 space-y-2 mt-2">
+                      <div className="ml-6 space-y-2 mt-3 p-3 bg-dark-800/50 rounded-lg">
                         {splitConfigs[expense.id]?.splits?.map((split) => {
                           const member = members.find((m) => m.id === split.user_id)
                           return (
-                            <div key={split.user_id} className="flex items-center space-x-2">
-                              <span className="text-sm w-24">
+                            <div key={split.user_id} className="flex items-center space-x-3">
+                              <span className="text-sm text-dark-300 w-28">
                                 {member?.name || member?.email}:
                               </span>
                               <input
@@ -276,7 +275,7 @@ export default function ShareToHouseholdModal({ isOpen, onClose, onSubmit, selec
                                 max="100"
                                 step="0.01"
                               />
-                              <span className="text-sm text-gray-500">%</span>
+                              <span className="text-sm text-dark-500">%</span>
                             </div>
                           )
                         })}

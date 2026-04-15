@@ -176,32 +176,31 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Configuración</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="heading">Configuración</h1>
+        <p className="subheading mt-1">
           Gestiona categorías, perfil y contraseña
         </p>
       </div>
 
-      {/* Sección: Perfil */}
       <div className="card">
-        <div className="flex items-center mb-4">
-          <UserCircleIcon className="h-6 w-6 text-gray-500 mr-2" />
-          <h2 className="text-lg font-medium text-gray-900">Perfil</h2>
+        <div className="flex items-center mb-6">
+          <UserCircleIcon className="h-6 w-6 text-dark-400 mr-3" />
+          <h2 className="text-lg font-medium text-dark-100">Perfil</h2>
         </div>
-        <form onSubmit={updateProfile} className="space-y-4">
+        <form onSubmit={updateProfile} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Email
             </label>
             <input
               type="email"
               value={user?.email || ''}
-              className="input-field bg-gray-100 cursor-not-allowed"
+              className="input-field bg-dark-800 cursor-not-allowed opacity-60"
               disabled
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Nombre
             </label>
             <input
@@ -218,21 +217,20 @@ export default function Settings() {
               Guardar cambios
             </button>
             {profileMsg && (
-              <span className="text-sm text-green-600">{profileMsg}</span>
+              <span className="text-sm text-green-400">{profileMsg}</span>
             )}
           </div>
         </form>
       </div>
 
-      {/* Sección: Cambiar contraseña */}
       <div className="card">
-        <div className="flex items-center mb-4">
-          <KeyIcon className="h-6 w-6 text-gray-500 mr-2" />
-          <h2 className="text-lg font-medium text-gray-900">Cambiar contraseña</h2>
+        <div className="flex items-center mb-6">
+          <KeyIcon className="h-6 w-6 text-dark-400 mr-3" />
+          <h2 className="text-lg font-medium text-dark-100">Cambiar contraseña</h2>
         </div>
-        <form onSubmit={updatePassword} className="space-y-4">
+        <form onSubmit={updatePassword} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Contraseña actual
             </label>
             <input
@@ -246,7 +244,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Nueva contraseña
             </label>
             <input
@@ -260,7 +258,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Confirmar nueva contraseña
             </label>
             <input
@@ -281,8 +279,8 @@ export default function Settings() {
               <span
                 className={`text-sm ${
                   passwordMsg.includes('correctamente')
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                    ? 'text-green-400'
+                    : 'text-red-400'
                 }`}
               >
                 {passwordMsg}
@@ -292,22 +290,20 @@ export default function Settings() {
         </form>
       </div>
 
-      {/* Sección: Gestión de categorías */}
       <div className="card">
-        <div className="flex items-center mb-4">
-          <TagIcon className="h-6 w-6 text-gray-500 mr-2" />
-          <h2 className="text-lg font-medium text-gray-900">Gestión de categorías</h2>
+        <div className="flex items-center mb-6">
+          <TagIcon className="h-6 w-6 text-dark-400 mr-3" />
+          <h2 className="text-lg font-medium text-dark-100">Gestión de categorías</h2>
         </div>
 
         {households.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-dark-400">
             Crea una vivienda primero para poder gestionar categorías.
           </div>
         ) : (
           <>
-            {/* Selector de vivienda */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-dark-300 mb-2">
                 Vivienda
               </label>
               <select
@@ -323,11 +319,10 @@ export default function Settings() {
               </select>
             </div>
 
-            {/* Formulario crear categoría */}
             <form onSubmit={createCategory} className="mb-6">
-              <div className="flex items-end space-x-3 mb-3">
+              <div className="flex items-end space-x-3 mb-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Nombre
                   </label>
                   <input
@@ -342,8 +337,8 @@ export default function Settings() {
                     required
                   />
                 </div>
-                <div className="w-24">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="w-20">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Icono
                   </label>
                   <input
@@ -352,38 +347,37 @@ export default function Settings() {
                     onChange={(e) =>
                       setNewCategory({ ...newCategory, icon: e.target.value })
                     }
-                    className="input-field text-center"
+                    className="input-field text-center text-lg"
                     maxLength={4}
                   />
                 </div>
-                <button type="submit" className="btn-primary inline-flex items-center h-10">
+                <button type="submit" className="btn-primary inline-flex items-center h-11">
                   <PlusIcon className="h-5 w-5 mr-1" />
                   Añadir
                 </button>
               </div>
 
-              {/* Emoji picker */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-dark-300 mb-2">
                   Seleccionar icono
                 </label>
-                <div className="flex space-x-2 mb-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {Object.keys(EMOJI_CATEGORIES).map((cat) => (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => setSelectedEmojiCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                         selectedEmojiCategory === cat
                           ? 'bg-primary-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-dark-700 text-dark-300 hover:bg-dark-600'
                       }`}
                     >
                       {cat}
                     </button>
                   ))}
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   {EMOJI_CATEGORIES[selectedEmojiCategory].map((emoji) => (
                     <button
                       key={emoji}
@@ -391,10 +385,10 @@ export default function Settings() {
                       onClick={() =>
                         setNewCategory({ ...newCategory, icon: emoji })
                       }
-                      className={`w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-gray-100 transition ${
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl text-xl transition ${
                         newCategory.icon === emoji
-                          ? 'bg-primary-100 ring-2 ring-primary-500'
-                          : ''
+                          ? 'bg-primary-500/20 ring-2 ring-primary-500'
+                          : 'bg-dark-700 hover:bg-dark-600'
                       }`}
                       title={emoji}
                     >
@@ -405,9 +399,8 @@ export default function Settings() {
               </div>
             </form>
 
-            {/* Lista de categorías */}
             {categories.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-dark-400">
                 No hay categorías para esta vivienda.
               </div>
             ) : (
@@ -415,7 +408,7 @@ export default function Settings() {
                 {categories.map((cat) => (
                   <div
                     key={cat.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl border border-dark-700/50"
                   >
                     {editingId === cat.id ? (
                       <div className="flex items-center space-x-3 flex-1">
@@ -423,7 +416,7 @@ export default function Settings() {
                           type="text"
                           value={editIcon}
                           onChange={(e) => setEditIcon(e.target.value)}
-                          className="input-field w-16 text-center"
+                          className="input-field w-14 text-center text-lg"
                           maxLength={4}
                         />
                         <input
@@ -436,14 +429,14 @@ export default function Settings() {
                         <button
                           type="button"
                           onClick={() => saveEdit(cat.id)}
-                          className="text-green-500 hover:text-green-600"
+                          className="text-green-400 hover:text-green-300 transition"
                         >
                           <CheckIcon className="h-5 w-5" />
                         </button>
                         <button
                           type="button"
                           onClick={cancelEdit}
-                          className="text-gray-400 hover:text-gray-500"
+                          className="text-dark-400 hover:text-dark-200 transition"
                         >
                           <XMarkIcon className="h-5 w-5" />
                         </button>
@@ -451,10 +444,10 @@ export default function Settings() {
                     ) : (
                       <>
                         <div className="flex items-center space-x-3">
-                          <span className="text-xl">{cat.icon}</span>
-                          <span className="font-medium text-gray-900">{cat.name}</span>
+                          <span className="text-2xl">{cat.icon}</span>
+                          <span className="font-medium text-dark-100">{cat.name}</span>
                           {cat.is_default && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
                               <LockClosedIcon className="h-3 w-3 mr-1" />
                               Por defecto
                             </span>
@@ -465,10 +458,10 @@ export default function Settings() {
                             type="button"
                             onClick={() => startEdit(cat)}
                             disabled={cat.is_default}
-                            className={`transition ${
+                            className={`p-2 rounded-lg transition ${
                               cat.is_default
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-400 hover:text-primary-500'
+                                ? 'text-dark-600 cursor-not-allowed'
+                                : 'text-dark-400 hover:text-primary-400 hover:bg-dark-700'
                             }`}
                             title={cat.is_default ? 'No editable' : 'Editar'}
                           >
@@ -478,10 +471,10 @@ export default function Settings() {
                             type="button"
                             onClick={() => deleteCategory(cat.id)}
                             disabled={cat.is_default}
-                            className={`transition ${
+                            className={`p-2 rounded-lg transition ${
                               cat.is_default
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-400 hover:text-red-500'
+                                ? 'text-dark-600 cursor-not-allowed'
+                                : 'text-dark-400 hover:text-red-400 hover:bg-dark-700'
                             }`}
                             title={cat.is_default ? 'No eliminable' : 'Eliminar'}
                           >

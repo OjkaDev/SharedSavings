@@ -70,8 +70,8 @@ export default function Household() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Viviendas</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="heading">Viviendas</h1>
+          <p className="subheading mt-1">
             Gestiona tus viviendas y miembros
           </p>
         </div>
@@ -86,11 +86,11 @@ export default function Household() {
 
       {households.length === 0 ? (
         <div className="card text-center py-12">
-          <HomeIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <HomeIcon className="h-16 w-16 text-dark-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-dark-100 mb-2">
             No tienes viviendas
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-dark-400 mb-6">
             Crea tu primera vivienda para empezar a compartir gastos
           </p>
           <button

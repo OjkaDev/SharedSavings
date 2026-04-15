@@ -25,24 +25,24 @@ export default function CreateHouseholdModal({ isOpen, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="modal-overlay">
       <div className="card max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Nueva Vivienda</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-dark-100">Nueva Vivienda</h2>
+          <button onClick={onClose} className="text-dark-400 hover:text-dark-200 transition">
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
               {error}
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-dark-300 mb-2">
               Nombre de la vivienda
             </label>
             <input

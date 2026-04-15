@@ -140,8 +140,8 @@ export default function PersonalFinances() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Finanzas Personales</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="heading">Finanzas Personales</h1>
+          <p className="subheading mt-1">
             Gestiona tus ingresos y gastos
           </p>
         </div>
@@ -170,58 +170,55 @@ export default function PersonalFinances() {
 
       <DateFilter onChange={setDateRange} />
 
-      {/* Cards de resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card bg-green-50 border border-green-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card bg-green-500/10 border-green-500/30">
           <div className="flex items-center">
-            <ArrowUpIcon className="h-8 w-8 text-green-500 mr-3" />
+            <div className="p-2 bg-green-500/20 rounded-xl mr-3">
+              <ArrowUpIcon className="h-6 w-6 text-green-400" />
+            </div>
             <div>
-              <p className="text-sm text-green-600 font-medium">Ingresos</p>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-sm text-green-400 font-medium">Ingresos</p>
+              <p className="text-2xl font-bold text-green-400">
                 €{summary.income.toFixed(2)}
               </p>
             </div>
           </div>
         </div>
-        <div className="card bg-red-50 border border-red-200">
+        <div className="card bg-red-500/10 border-red-500/30">
           <div className="flex items-center">
-            <ArrowDownIcon className="h-8 w-8 text-red-500 mr-3" />
+            <div className="p-2 bg-red-500/20 rounded-xl mr-3">
+              <ArrowDownIcon className="h-6 w-6 text-red-400" />
+            </div>
             <div>
-              <p className="text-sm text-red-600 font-medium">Gastos</p>
-              <p className="text-2xl font-bold text-red-700">
+              <p className="text-sm text-red-400 font-medium">Gastos</p>
+              <p className="text-2xl font-bold text-red-400">
                 €{summary.expenses.toFixed(2)}
               </p>
             </div>
           </div>
         </div>
-        <div
-          className={`card border ${
+        <div className={`card border ${
             summary.balance >= 0
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-orange-50 border-orange-200'
-          }`}
-        >
+              ? 'bg-blue-500/10 border-blue-500/30'
+              : 'bg-orange-500/10 border-orange-500/30'
+          }`}>
           <div className="flex items-center">
-            <div
-              className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
-                summary.balance >= 0 ? 'bg-blue-500' : 'bg-orange-500'
-              }`}
-            >
-              <span className="text-white font-bold">€</span>
+            <div className={`p-2 rounded-xl mr-3 ${
+                summary.balance >= 0 ? 'bg-blue-500/20' : 'bg-orange-500/20'
+              }`}>
+              <span className={`text-xl font-bold ${
+                summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
+              }`}>€</span>
             </div>
             <div>
-              <p
-                className={`text-sm font-medium ${
-                  summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
-                }`}
-              >
+              <p className={`text-sm font-medium ${
+                  summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
+                }`}>
                 Balance
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  summary.balance >= 0 ? 'text-blue-700' : 'text-orange-700'
-                }`}
-              >
+              <p className={`text-2xl font-bold ${
+                  summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
+                }`}>
                 €{summary.balance.toFixed(2)}
               </p>
             </div>
@@ -229,114 +226,101 @@ export default function PersonalFinances() {
         </div>
       </div>
 
-      {/* Tabla de transacciones */}
       <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-medium text-dark-100">
             Historial de Transacciones
           </h2>
           {hasIncomesSelected && (
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+            <span className="text-xs text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/30">
               Los ingresos no se pueden compartir
             </span>
           )}
         </div>
 
         {transactions.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-dark-400">
             No hay transacciones registradas. Comienza añadiendo tus ingresos y gastos.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-dark-700">
+                  <th className="table-header py-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.length === transactions.length}
                       onChange={toggleSelectAll}
-                      className="rounded"
+                      className="rounded bg-dark-800 border-dark-600"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Fecha
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Descripción
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Categoría
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Tipo
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Importe
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Acciones
-                  </th>
+                  <th className="table-header py-3">Fecha</th>
+                  <th className="table-header py-3">Descripción</th>
+                  <th className="table-header py-3">Categoría</th>
+                  <th className="table-header py-3">Tipo</th>
+                  <th className="table-header py-3 text-right">Importe</th>
+                  <th className="table-header py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-dark-700">
                 {transactions.map((transaction) => (
                   <tr
                     key={transaction.id}
-                    className={`hover:bg-gray-50 ${
-                      selectedIds.includes(transaction.id) ? 'bg-primary-50' : ''
+                    className={`hover:bg-dark-800/50 transition-colors ${
+                      selectedIds.includes(transaction.id) ? 'bg-primary-500/10' : ''
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="table-cell">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(transaction.id)}
                         onChange={() => toggleSelect(transaction.id)}
-                        className="rounded"
+                        className="rounded bg-dark-800 border-dark-600"
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="table-cell">
                       {new Date(transaction.date).toLocaleDateString('es-ES')}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-xs truncate">
+                    <td className="table-cell font-medium max-w-xs truncate">
                       {transaction.description || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="table-cell text-dark-300">
                       {transaction.category ? `${transaction.category.icon} ${transaction.category.name}` : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="table-cell">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        className={`badge ${
                           transaction.type === 'income'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'badge-success'
+                            : 'badge-danger'
                         }`}
                       >
                         {transaction.type === 'income' ? 'Ingreso' : 'Gasto'}
                       </span>
                     </td>
                     <td
-                      className={`px-4 py-3 text-sm font-semibold text-right ${
+                      className={`table-cell font-semibold text-right ${
                         transaction.type === 'income'
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                          ? 'text-green-400'
+                          : 'text-red-400'
                       }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}€
                       {parseFloat(transaction.amount).toFixed(2)}
                       {transaction.my_share !== null && transaction.my_share !== undefined && (
-                        <span className="block text-xs text-purple-600">
+                        <span className="block text-xs text-purple-400">
                           (€
                           {parseFloat(transaction.my_share).toFixed(2)} compartido)
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="table-cell text-right">
                       <div className="flex justify-end space-x-2">
                         {transaction.shared_expense_id && (
                           <button
                             onClick={() => unshareExpense(transaction.shared_expense_id)}
-                            className="text-amber-500 hover:text-amber-600 transition"
+                            className="text-yellow-400 hover:text-yellow-300 transition"
                             title="Descompartir"
                           >
                             <HomeIcon className="h-5 w-5" />
@@ -346,8 +330,8 @@ export default function PersonalFinances() {
                           onClick={() => deleteTransaction(transaction.id)}
                           className={`transition ${
                             transaction.shared_expense_id
-                              ? 'text-gray-300 cursor-not-allowed'
-                              : 'text-gray-400 hover:text-red-500'
+                              ? 'text-dark-600 cursor-not-allowed'
+                              : 'text-dark-400 hover:text-red-400'
                           }`}
                           disabled={!!transaction.shared_expense_id}
                           title={transaction.shared_expense_id ? 'Descomparte primero' : 'Eliminar'}
@@ -364,19 +348,18 @@ export default function PersonalFinances() {
         )}
       </div>
 
-      {/* Modal crear transacción */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="modal-overlay">
           <div className="card max-w-md w-full mx-4">
-            <h2 className="text-xl font-semibold mb-4">Nuevo Registro</h2>
+            <h2 className="text-xl font-semibold mb-6 text-dark-100">Nuevo Registro</h2>
             <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Tipo
                   </label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center">
+                  <div className="flex space-x-6">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
                         value="expense"
@@ -384,11 +367,11 @@ export default function PersonalFinances() {
                         onChange={(e) =>
                           setFormData({ ...formData, type: e.target.value })
                         }
-                        className="mr-2"
+                        className="mr-2 accent-primary-500"
                       />
-                      Gasto
+                      <span className="text-dark-200">Gasto</span>
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
                         value="income"
@@ -396,14 +379,14 @@ export default function PersonalFinances() {
                         onChange={(e) =>
                           setFormData({ ...formData, type: e.target.value })
                         }
-                        className="mr-2"
+                        className="mr-2 accent-primary-500"
                       />
-                      Ingreso
+                      <span className="text-dark-200">Ingreso</span>
                     </label>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Importe (€)
                   </label>
                   <input
@@ -420,8 +403,8 @@ export default function PersonalFinances() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción <span className="text-gray-400">(opcional)</span>
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
+                    Descripción <span className="text-dark-500">(opcional)</span>
                   </label>
                   <input
                     type="text"
@@ -435,7 +418,7 @@ export default function PersonalFinances() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Categoría
                   </label>
                   <select
@@ -454,7 +437,7 @@ export default function PersonalFinances() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
                     Fecha
                   </label>
                   <input
@@ -488,7 +471,6 @@ export default function PersonalFinances() {
         </div>
       )}
 
-      {/* Modal compartir */}
       <ShareToHouseholdModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}

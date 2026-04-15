@@ -11,6 +11,23 @@
   --color-primary-700: #15803d;
   --color-primary-800: #166534;
   --color-primary-900: #14532d;
+  
+  --color-dark-50: #f8fafc;
+  --color-dark-100: #f1f5f9;
+  --color-dark-200: #e2e8f0;
+  --color-dark-300: #cbd5e1;
+  --color-dark-400: #94a3b8;
+  --color-dark-500: #64748b;
+  --color-dark-600: #475569;
+  --color-dark-700: #334155;
+  --color-dark-800: #1e293b;
+  --color-dark-900: #0f172a;
+  --color-dark-950: #020617;
+  
+  --color-surface: #1e1e32;
+  --color-surface-hover: #252542;
+  --color-surface-active: #2d2d50;
+  --color-border: #3d3d5c;
 }
 
 body {
@@ -20,20 +37,82 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-dark-900);
+  color: var(--color-dark-100);
 }
 
 @utility btn-primary {
-  @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 cursor-pointer;
 }
 
 @utility btn-secondary {
-  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+  @apply bg-dark-700 hover:bg-dark-600 text-dark-100 font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 cursor-pointer border border-dark-600;
+}
+
+@utility btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 cursor-pointer;
 }
 
 @utility input-field {
-  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  @apply w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-dark-100 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
 }
 
 @utility card {
-  @apply bg-white rounded-xl shadow-md p-6;
+  @apply bg-surface rounded-2xl border border-dark-700/50 p-6 transition-all duration-200;
+}
+
+@utility card-hover {
+  @apply bg-surface hover:bg-surface-hover border-dark-600/50 hover:border-primary-500/30;
+}
+
+@utility nav-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-dark-400 hover:text-dark-100 hover:bg-dark-800 transition-all duration-200;
+}
+
+@utility nav-item-active {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-500/10 text-primary-400 border border-primary-500/20;
+}
+
+@utility heading {
+  @apply text-2xl font-bold text-dark-50;
+}
+
+@utility subheading {
+  @apply text-dark-400 text-sm;
+}
+
+@utility table-header {
+  @apply text-left text-xs font-medium text-dark-400 uppercase tracking-wider;
+}
+
+@utility table-cell {
+  @apply px-4 py-3 text-dark-200;
+}
+
+@utility badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium;
+}
+
+@utility badge-success {
+  @apply bg-primary-500/20 text-primary-400 border border-primary-500/30;
+}
+
+@utility badge-warning {
+  @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+}
+
+@utility badge-danger {
+  @apply bg-red-500/20 text-red-400 border border-red-500/30;
+}
+
+@utility modal-overlay {
+  @apply fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50;
+}
+
+@utility modal-content {
+  @apply bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-md mx-4;
+}
+
+@utility glass {
+  @apply bg-dark-800/80 backdrop-blur-md border border-dark-700/50;
 }
