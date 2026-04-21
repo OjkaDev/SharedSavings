@@ -112,12 +112,12 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | **User** | id, email(unique), name, password_hash | M2M households, 1:N personal_expenses, 1:N expenses_paid, 1:N expense_splits |
 | **Household** | id, name, created_by(FK->users) | 1:N expenses (cascade delete), M2M members |
 | **household_members** | user_id, household_id, role("owner"/"member"), joined_at | Association table |
-| **Category** | id, name, icon, is_default, household_id, created_by | is_default=True = global |
+| **Category** | id, name, icon, is_default, household_id, created_by | is_default=True + created_by=None = global (all users see); custom = user created |
 | **Expense** | id, household_id, paid_by, amount, description, category_id, date, split_type("equal"/"percentage"), personal_expense_id | Links to PersonalExpense |
 | **ExpenseSplit** | id, expense_id, user_id, amount, percentage, paid | Who owes what + payment status |
 | **PersonalExpense** | id, user_id, amount, description, category_id, date, type("expense"/"income") | Personal transactions |
 
-**Auto-create:** `Base.metadata.create_all()` runs on every startup (main.py:7).
+**Auto-create:** `Base.metadata.create_all()` runs on every startup (main.py:9). Default global categories are seeded once at startup (main.py:12-42).
 
 ---
 
@@ -142,7 +142,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/households/` | Yes | List user's households |
-| POST | `/api/households/` | Yes | Create household + 7 categories |
+| POST | `/api/households/` | Yes | Create household |
 | GET | `/api/households/{id}` | Yes | Get household + members |
 | DELETE | `/api/households/{id}` | Yes | Delete (creator only) |
 | POST | `/api/households/{id}/invite` | Yes | Invite by email |
@@ -172,10 +172,12 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 ### Categories (`/api/categories`)
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/categories/` | Yes | List (filter: household_id) |
-| POST | `/api/categories/` | Yes | Create custom |
+| GET | `/api/categories/` | Yes | List (default + user's own) |
+| POST | `/api/categories/` | Yes | Create global category |
 | PUT | `/api/categories/{id}` | Yes | Update (owner only) |
 | DELETE | `/api/categories/{id}` | Yes | Delete (owner only) |
+
+**Note:** Default categories are global (created once at startup). All users can see them. Custom categories belong to the user who created them.
 
 ---
 
@@ -254,7 +256,8 @@ The `/personal/expenses` endpoint returns a unified list:
 - Personal finances CRUD (income/expense)
 - Share expenses to household with split config
 - Household detail with debt summary
-- Settings page (profile, password, categories with emoji picker)
+- Settings page with sidebar navigation (Perfil, Categorías)
+- Profile + Password unified in one section
 - Date filters on PersonalFinances, HouseholdDetail, Reports
 - Reports page with 5 Chart.js graphs
 - Dashboard with real data from current month
@@ -264,6 +267,9 @@ The `/personal/expenses` endpoint returns a unified list:
 - PersonalFinances shows debts from others (is_debt, is_paid)
 - Debts included in summary total
 - Protected actions for others' expenses
+- **Categories redesign:** Global default categories (visible to all users) + user custom categories
+- Emoji suggestions panel in Settings (click outside to close)
+- Responsive UI improvements for mobile
 
 **Pending:**
 - Database review and security
@@ -279,7 +285,7 @@ The `/personal/expenses` endpoint returns a unified list:
 4. **No pagination** — All endpoints return everything
 5. **No expense updates** — Create/delete only
 6. **Profile update uses query param** — `PUT /api/auth/profile?name=foo`
-7. **Default categories** — 7 Spanish categories per household
+7. **Default categories** — 7 Spanish categories, global (created once at startup), visible to all users
 8. **Tailwind v4** — `@import "tailwindcss"` not `@tailwind`
 9. **Vite proxy** — `/api` → `localhost:8000`
 10. **DateFilter** — Returns `{ start_date, end_date, month, year }`
@@ -287,18 +293,24 @@ The `/personal/expenses` endpoint returns a unified list:
 12. **is_debt/is_paid fields** — Track debts from and to others
 13. **Debts in summary** — Total includes unpaid debts from others
 14. **Protected actions** — Cannot delete/unshare others' expenses
-15. **Color scheme:**
-    - Ingreso: 🟢 green
-    - Gasto: 🔴 red
-    - Shared by me: 🔴 red + "(€X compartido)"
-    - Deuda (unpaid): 🟠 orange + "(debes)"
-    - Pagado (others paid): 🔴 red + "(te deben)"
+15. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
+16. **Emoji suggestions** — Panel shows on input focus, closes on click outside
+17. **Color scheme:**
+     - Ingreso: 🟢 green
+     - Gasto: 🔴 red
+     - Shared by me: 🔴 red + "(€X compartido)"
+     - Deuda (unpaid): 🟠 orange + "(debes)"
+     - Pagado (others paid): 🔴 red + "(te deben)"
 
 ---
 
 ## Recent Commits
 
 ```
+xxxxxxx Feat: Redesign categories - global default categories visible to all users
+xxxxxxx Feat: Settings page with sidebar navigation (Perfil + Categorías)
+xxxxxxx Feat: Unified profile + password in one section
+xxxxxxx Feat: Emoji suggestions panel with click-outside-to-close
 b45ce2b Feat: Incluir deudas en summary + proteger acciones de gastos de otros
 92c5f5b Feat: Mostrar estado de pago en deudas - naranja (debes), púrpura (te deben), rojo (pagado)
 200a2fd Feat: Mostrar deudas de gastos compartidos por otros en finanzas personales

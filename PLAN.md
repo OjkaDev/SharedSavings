@@ -139,7 +139,7 @@ Proyecto-Cuenta/
 ### Fase 11: Ajustes y Bug
 - [x] Filtrado de fecha repetido en Reports.jsx
 - [ ] Revisar en reports.jsx los gráficos a poner.
-- [ ] Cambio en Settings.jsx, interfaz lateral
+- [x] Cambio en Settings.jsx, interfaz lateral (sidebar + tabs móvil)
 - [ ] Modificación de categorías y mejoras en Settings.jsx
 - [ ] Mejorar login y registro (Correo confirmación?)
 - [ ] Revision BBDD y problemas de seguridad.

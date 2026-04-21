@@ -10,34 +10,27 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 @router.get("/", response_model=List[CategoryResponse])
 def get_categories(
-    household_id: int = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Category).filter(
+    # Get default categories (is_default=True) + user's own categories
+    return db.query(Category).filter(
         (Category.is_default == True) | (Category.created_by == current_user.id)
-    )
-
-    if household_id:
-        query = query.filter(
-            (Category.household_id == household_id) | (Category.household_id == None)
-        )
-
-    return query.all()
+    ).all()
 
 
 @router.post("/", response_model=CategoryResponse)
 def create_category(
     category_data: CategoryCreate,
-    household_id: int = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Categories are now global (not tied to any household)
     category = Category(
         name=category_data.name,
         icon=category_data.icon,
         is_default=False,
-        household_id=household_id,
+        household_id=None,
         created_by=current_user.id,
     )
     db.add(category)

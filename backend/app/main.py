@@ -1,10 +1,45 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.models.database import Base, engine
+from app.models.database import Base, engine, Category
+from app.config import DEFAULT_CATEGORIES
 from app.routers import auth, households, expenses, personal, categories
+from sqlalchemy.orm import Session
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Seed default global categories (only if they don't exist)
+def seed_default_categories():
+    with Session(engine) as db:
+        # Migrate existing categories with household_id to global (household_id = None)
+        existing_with_household = db.query(Category).filter(
+            Category.household_id != None
+        ).update({Category.household_id: None}, synchronize_session=False)
+        if existing_with_household > 0:
+            print(f"✓ Migrated {existing_with_household} categories to global")
+        
+        # Create default global categories if they don't exist
+        existing_defaults = db.query(Category).filter(
+            Category.is_default == True,
+            Category.household_id == None,
+            Category.created_by == None
+        ).first()
+        
+        if not existing_defaults:
+            for cat_data in DEFAULT_CATEGORIES:
+                category = Category(
+                    name=cat_data["name"],
+                    icon=cat_data["icon"],
+                    is_default=True,
+                    household_id=None,
+                    created_by=None,
+                )
+                db.add(category)
+            print("✓ Default global categories created")
+        
+        db.commit()
+
+seed_default_categories()
 
 app = FastAPI(
     title="SharedSavings API",

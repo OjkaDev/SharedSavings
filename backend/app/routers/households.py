@@ -3,15 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from app.models.database import get_db, User, Household, household_members, Category, Expense, ExpenseSplit
-from app.schemas.schemas import (
-    HouseholdCreate,
-    HouseholdResponse,
-    InviteMember,
-    DebtSummary,
-    DebtDetail,
-)
+from app.schemas.schemas import HouseholdCreate, HouseholdResponse, HouseholdMemberResponse, InviteMember, DebtSummary, DebtDetail
 from app.utils.auth import get_current_user
-from app.config import DEFAULT_CATEGORIES
 
 router = APIRouter(prefix="/households", tags=["Households"])
 
@@ -45,17 +38,6 @@ def create_household(
         role="owner",
     )
     db.execute(stmt)
-
-    # Create default categories for this household
-    for cat_data in DEFAULT_CATEGORIES:
-        category = Category(
-            name=cat_data["name"],
-            icon=cat_data["icon"],
-            is_default=True,
-            household_id=household.id,
-            created_by=current_user.id,
-        )
-        db.add(category)
 
     db.commit()
     db.refresh(household)
