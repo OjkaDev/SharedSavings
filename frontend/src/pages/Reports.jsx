@@ -205,14 +205,25 @@ export default function Reports() {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          color: '#94a3b8',
+          padding: 15,
+          font: { size: 12 },
+        },
       },
     },
     scales: {
+      x: {
+        ticks: { color: '#64748b' },
+        grid: { color: 'rgba(71, 85, 105, 0.3)' },
+      },
       y: {
         beginAtZero: true,
         ticks: {
+          color: '#64748b',
           callback: (value) => `€${value}`,
         },
+        grid: { color: 'rgba(71, 85, 105, 0.3)' },
       },
     },
   }
@@ -222,14 +233,16 @@ export default function Reports() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'right',
+        position: 'bottom',
         labels: {
+          color: '#94a3b8',
           boxWidth: 12,
-          padding: 8,
+          padding: 12,
           font: { size: 11 },
         },
       },
     },
+    cutout: '65%',
   }
 
   if (loading) {
@@ -240,92 +253,87 @@ export default function Reports() {
     )
   }
 
+  const stats = [
+    {
+      name: 'Ingresos',
+      value: `€${totalIncome.toFixed(2)}`,
+      icon: ArrowTrendingUpIcon,
+      gradient: 'from-green-400 to-emerald-500',
+    },
+    {
+      name: 'Gastos',
+      value: `€${totalExpenses.toFixed(2)}`,
+      icon: ArrowTrendingDownIcon,
+      gradient: 'from-red-400 to-rose-500',
+    },
+    {
+      name: 'Ahorro',
+      value: `€${totalSavings.toFixed(2)}`,
+      icon: CurrencyDollarIcon,
+      gradient: totalSavings >= 0 ? 'from-cyan-400 to-blue-500' : 'from-orange-400 to-red-500',
+    },
+    {
+      name: 'Gastos Compartidos',
+      value: `€${totalShared.toFixed(2)}`,
+      icon: ChartPieIcon,
+      gradient: 'from-purple-400 to-indigo-500',
+    },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Informes</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Visualiza tus finanzas con gráficos interactivos
-          </p>
+          <h1 className="heading">Informes</h1>
+          <p className="subheading mt-1">Visualiza tus finanzas con gráficos interactivos</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <DateFilter onChange={setDateRange} year={currentYear} />
-        </div>
+        <DateFilter onChange={setDateRange} year={currentYear} />
       </div>
 
       {/* Cards resumen anual */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-green-50 border border-green-200">
-          <div className="flex items-center">
-            <ArrowTrendingUpIcon className="h-8 w-8 text-green-500 mr-3" />
-            <div>
-              <p className="text-sm text-green-600 font-medium">Ingresos ({year})</p>
-              <p className="text-xl font-bold text-green-700">€{totalIncome.toFixed(2)}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {stats.map((stat) => (
+          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
+            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
+            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
+                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
+              </div>
+              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
             </div>
+            <p className="text-dark-500 text-xs">Total de {year}</p>
           </div>
-        </div>
-        <div className="card bg-red-50 border border-red-200">
-          <div className="flex items-center">
-            <ArrowTrendingDownIcon className="h-8 w-8 text-red-500 mr-3" />
-            <div>
-              <p className="text-sm text-red-600 font-medium">Gastos ({year})</p>
-              <p className="text-xl font-bold text-red-700">€{totalExpenses.toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
-        <div className={`card border ${
-          totalSavings >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'
-        }`}>
-          <div className="flex items-center">
-            <CurrencyDollarIcon className={`h-8 w-8 mr-3 ${
-              totalSavings >= 0 ? 'text-blue-500' : 'text-orange-500'
-            }`} />
-            <div>
-              <p className={`text-sm font-medium ${
-                totalSavings >= 0 ? 'text-blue-600' : 'text-orange-600'
-              }`}>Ahorro ({year})</p>
-              <p className={`text-xl font-bold ${
-                totalSavings >= 0 ? 'text-blue-700' : 'text-orange-700'
-              }`}>€{totalSavings.toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card bg-purple-50 border border-purple-200">
-          <div className="flex items-center">
-            <ChartPieIcon className="h-8 w-8 text-purple-500 mr-3" />
-            <div>
-              <p className="text-sm text-purple-600 font-medium">Gastos compartidos</p>
-              <p className="text-xl font-bold text-purple-700">€{totalShared.toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Gráficas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 1. Ingresos vs Gastos */}
-        <div className="card">
-          <div className="flex items-center mb-4">
-            <ChartBarIcon className="h-5 w-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">Ingresos vs Gastos</h2>
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
+              <ChartBarIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Ingresos vs Gastos</h2>
           </div>
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             <Bar data={incomeVsExpensesData} options={chartOptions} />
           </div>
         </div>
 
         {/* 2. Distribución por categoría */}
-        <div className="card">
-          <div className="flex items-center mb-4">
-            <ChartPieIcon className="h-5 w-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">Gastos por categoría</h2>
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3">
+              <ChartPieIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Gastos por categoría</h2>
           </div>
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             {personalSummary?.by_category?.length > 0 ? (
               <Doughnut data={categoryData} options={doughnutOptions} />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
                 No hay datos de categorías
               </div>
             )}
@@ -333,23 +341,27 @@ export default function Reports() {
         </div>
 
         {/* 3. Evolución de gastos */}
-        <div className="card">
-          <div className="flex items-center mb-4">
-            <ArrowTrendingUpIcon className="h-5 w-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">Evolución mensual</h2>
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mr-3">
+              <ArrowTrendingUpIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Evolución mensual</h2>
           </div>
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             <Line data={expenseTrendData} options={chartOptions} />
           </div>
         </div>
 
         {/* 4. Ahorro mensual */}
-        <div className="card">
-          <div className="flex items-center mb-4">
-            <CurrencyDollarIcon className="h-5 w-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">Ahorro mensual</h2>
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
+              <CurrencyDollarIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Ahorro mensual</h2>
           </div>
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             <Bar
               data={savingsData}
               options={{
@@ -364,12 +376,14 @@ export default function Reports() {
         </div>
 
         {/* 5. Gastos compartidos vs personales */}
-        <div className="card lg:col-span-2">
-          <div className="flex items-center mb-4">
-            <ChartBarIcon className="h-5 w-5 text-gray-500 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">Gastos personales vs compartidos</h2>
+        <div className="card p-4 md:p-6 lg:col-span-2">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
+              <ChartBarIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Gastos personales vs compartidos</h2>
           </div>
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             <Bar data={sharedVsPersonalData} options={chartOptions} />
           </div>
         </div>
