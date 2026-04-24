@@ -239,3 +239,11 @@ class MonthlySharedData(BaseModel):
     month: int
     total: float
     my_share: float
+
+
+class TopExpense(BaseModel):
+    description: str
+    amount: float
+    category_name: Optional[str] = None
+    date: datetime
+    type: str  # "personal" or "debt"

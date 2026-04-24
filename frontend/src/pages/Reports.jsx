@@ -1,34 +1,31 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '../services/api'
 import DateFilter from '../components/DateFilter'
-import { getCurrentMonth, getMonthRange, getAvailableYears } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js'
-import { Bar, Doughnut, Line } from 'react-chartjs-2'
+import { Bar, Doughnut } from 'react-chartjs-2'
 import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   CurrencyDollarIcon,
   ChartPieIcon,
   ChartBarIcon,
+  FireIcon,
 } from '@heroicons/react/24/outline'
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
@@ -49,8 +46,6 @@ const COLORS = {
   totalBorder: 'rgba(99, 102, 241, 1)',
   myShare: 'rgba(168, 85, 247, 0.7)',
   myShareBorder: 'rgba(168, 85, 247, 1)',
-  savings: 'rgba(34, 197, 94, 0.7)',
-  savingsNeg: 'rgba(239, 68, 68, 0.7)',
 }
 
 const CHART_COLORS = [
@@ -65,7 +60,7 @@ export default function Reports() {
   const [monthlyPersonal, setMonthlyPersonal] = useState([])
   const [monthlyShared, setMonthlyShared] = useState([])
   const [personalSummary, setPersonalSummary] = useState(null)
-  const [sharedSummary, setSharedSummary] = useState(null)
+  const [topExpenses, setTopExpenses] = useState([])
   const [loading, setLoading] = useState(true)
 
   const year = useMemo(() => dateRange?.year || currentYear, [dateRange, currentYear])
@@ -76,16 +71,16 @@ export default function Reports() {
 
   const fetchData = async () => {
     try {
-      const [personalRes, sharedRes, personalSumRes, sharedSumRes] = await Promise.all([
+      const [personalRes, sharedRes, personalSumRes, topRes] = await Promise.all([
         api.get('/personal/monthly', { params: { year } }),
         api.get('/expenses/monthly', { params: { year } }),
         api.get('/personal/summary', { params: dateRange }),
-        api.get('/expenses/summary', { params: dateRange }),
+        api.get('/personal/top-expenses', { params: { start_date: dateRange.start_date, end_date: dateRange.end_date, limit: 10 } }),
       ])
       setMonthlyPersonal(personalRes.data)
       setMonthlyShared(sharedRes.data)
       setPersonalSummary(personalSumRes.data)
-      setSharedSummary(sharedSumRes.data)
+      setTopExpenses(topRes.data)
     } catch (error) {
       console.error('Error fetching reports data:', error)
     } finally {
@@ -93,11 +88,45 @@ export default function Reports() {
     }
   }
 
-  const totalIncome = monthlyPersonal.reduce((sum, m) => sum + m.income, 0)
-  const totalExpenses = monthlyPersonal.reduce((sum, m) => sum + m.expenses, 0)
+  const getMonthsInRange = () => {
+    if (!dateRange?.start_date || !dateRange?.end_date) return null
+    const startMonth = new Date(dateRange.start_date).getMonth() + 1
+    const endMonth = new Date(dateRange.end_date).getMonth() + 1
+    const months = []
+    for (let m = startMonth; m <= endMonth; m++) months.push(m)
+    return months
+  }
+
+  const monthsInRange = getMonthsInRange()
+
+  const getPeriodLabel = () => {
+    if (!dateRange?.period) return `de ${year}`
+    const { period, subPeriod } = dateRange
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    switch (period) {
+      case 'month': return `${monthNames[(subPeriod || 1) - 1]} ${year}`
+      case 'quarter': return `Q${subPeriod || 1} ${year}`
+      case 'semester': return `S${subPeriod || 1} ${year}`
+      case 'year': return `${year}`
+      default: return `de ${year}`
+    }
+  }
+
+  const periodLabel = getPeriodLabel()
+
+  const filteredPersonal = monthsInRange
+    ? monthlyPersonal.filter(m => monthsInRange.includes(m.month))
+    : monthlyPersonal
+  const filteredShared = monthsInRange
+    ? monthlyShared.filter(m => monthsInRange.includes(m.month))
+    : monthlyShared
+
+  const totalIncome = filteredPersonal.reduce((sum, m) => sum + m.income, 0)
+  const totalExpenses = filteredPersonal.reduce((sum, m) => sum + m.expenses, 0)
   const totalSavings = totalIncome - totalExpenses
-  const totalShared = monthlyShared.reduce((sum, m) => sum + m.total, 0)
-  const totalMyShare = monthlyShared.reduce((sum, m) => sum + m.my_share, 0)
+  const totalShared = filteredShared.reduce((sum, m) => sum + m.total, 0)
+  const totalMyShare = filteredShared.reduce((sum, m) => sum + m.my_share, 0)
 
   // Chart 1: Ingresos vs Gastos (Barras)
   const incomeVsExpensesData = {
@@ -133,45 +162,7 @@ export default function Reports() {
     ],
   }
 
-  // Chart 3: Evolución de gastos (Línea)
-  const expenseTrendData = {
-    labels: MONTHS,
-    datasets: [
-      {
-        label: 'Gastos',
-        data: monthlyPersonal.map(m => m.expenses),
-        borderColor: COLORS.expenseBorder,
-        backgroundColor: COLORS.expense,
-        tension: 0.3,
-        fill: true,
-      },
-      {
-        label: 'Ingresos',
-        data: monthlyPersonal.map(m => m.income),
-        borderColor: COLORS.incomeBorder,
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        tension: 0.3,
-        fill: true,
-      },
-    ],
-  }
-
-  // Chart 4: Ahorro mensual (Barras)
-  const savingsData = {
-    labels: MONTHS,
-    datasets: [
-      {
-        label: 'Ahorro',
-        data: monthlyPersonal.map(m => m.balance),
-        backgroundColor: monthlyPersonal.map(m =>
-          m.balance >= 0 ? COLORS.savings : COLORS.savingsNeg
-        ),
-        borderWidth: 1,
-      },
-    ],
-  }
-
-  // Chart 5: Gastos compartidos vs personales (Barras agrupadas)
+  // Chart 3: Gastos compartidos vs personales (Barras agrupadas)
   const sharedVsPersonalData = {
     labels: MONTHS,
     datasets: [
@@ -245,6 +236,47 @@ export default function Reports() {
     cutout: '65%',
   }
 
+  // Chart data: Top gastos
+  const topExpensesData = {
+    labels: topExpenses.map(e => e.description.length > 20 ? e.description.slice(0, 20) + '...' : e.description),
+    datasets: [
+      {
+        label: 'Monto',
+        data: topExpenses.map(e => e.amount),
+        backgroundColor: topExpenses.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+    ],
+  }
+
+  const horizontalBarOptions = {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => {
+            const item = topExpenses[ctx.dataIndex]
+            return `${item.category_name}: €${item.amount.toFixed(2)} (${item.type === 'debt' ? 'deuda' : 'personal'})`
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#64748b', callback: (v) => `€${v}` },
+        grid: { color: 'rgba(71, 85, 105, 0.3)' },
+      },
+      y: {
+        ticks: { color: '#94a3b8', font: { size: 11 } },
+        grid: { display: false },
+      },
+    },
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -290,7 +322,7 @@ export default function Reports() {
         <DateFilter onChange={setDateRange} year={currentYear} />
       </div>
 
-      {/* Cards resumen anual */}
+      {/* Cards resumen por periodo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {stats.map((stat) => (
           <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
@@ -301,7 +333,7 @@ export default function Reports() {
               </div>
               <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
             </div>
-            <p className="text-dark-500 text-xs">Total de {year}</p>
+            <p className="text-dark-500 text-xs">Total {periodLabel}</p>
           </div>
         ))}
       </div>
@@ -340,42 +372,7 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* 3. Evolución de gastos */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mr-3">
-              <ArrowTrendingUpIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Evolución mensual</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Line data={expenseTrendData} options={chartOptions} />
-          </div>
-        </div>
-
-        {/* 4. Ahorro mensual */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
-              <CurrencyDollarIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Ahorro mensual</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Bar
-              data={savingsData}
-              options={{
-                ...chartOptions,
-                plugins: {
-                  ...chartOptions.plugins,
-                  legend: { display: false },
-                },
-              }}
-            />
-          </div>
-        </div>
-
-        {/* 5. Gastos compartidos vs personales */}
+        {/* 3. Gastos compartidos vs personales */}
         <div className="card p-4 md:p-6 lg:col-span-2">
           <div className="flex items-center mb-4 md:mb-6">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
@@ -385,6 +382,25 @@ export default function Reports() {
           </div>
           <div className="h-56 md:h-72">
             <Bar data={sharedVsPersonalData} options={chartOptions} />
+          </div>
+        </div>
+
+        {/* 4. Top Gastos */}
+        <div className="card p-4 md:p-6 lg:col-span-2">
+          <div className="flex items-center mb-4 md:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mr-3">
+              <FireIcon className="h-4 w-4 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-dark-50">Top Gastos</h2>
+          </div>
+          <div className="h-64 md:h-80">
+            {topExpenses.length > 0 ? (
+              <Bar data={topExpensesData} options={horizontalBarOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
+                No hay datos de gastos
+              </div>
+            )}
           </div>
         </div>
       </div>

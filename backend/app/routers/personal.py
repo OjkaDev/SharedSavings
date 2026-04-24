@@ -4,7 +4,7 @@ from sqlalchemy import func, extract, or_
 from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members, household_categories
-from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData
+from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData, TopExpense
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/personal", tags=["Personal Expenses"])
@@ -290,6 +290,82 @@ def get_monthly_personal(
         item["balance"] = item["income"] - item["expenses"]
 
     return result
+
+
+@router.get("/top-expenses", response_model=List[TopExpense])
+def get_top_expenses(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtener los gastos más grandes del periodo (personales + deudas de otros)"""
+    results = []
+
+    # Gastos personales
+    personal_query = (
+        db.query(PersonalExpense)
+        .options(joinedload(PersonalExpense.category))
+        .filter(
+            PersonalExpense.user_id == current_user.id,
+            PersonalExpense.type == "expense",
+        )
+    )
+    if start_date:
+        personal_query = personal_query.filter(PersonalExpense.date >= start_date)
+    if end_date:
+        personal_query = personal_query.filter(PersonalExpense.date <= end_date)
+
+    for exp in personal_query.all():
+        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        if shared:
+            split = db.query(ExpenseSplit).filter(
+                ExpenseSplit.expense_id == shared.id,
+                ExpenseSplit.user_id == current_user.id,
+            ).first()
+            amount = split.amount if split else exp.amount
+        else:
+            amount = exp.amount
+
+        results.append({
+            "description": exp.description or "Sin descripción",
+            "amount": amount,
+            "category_name": exp.category.name if exp.category else "Sin categoría",
+            "date": exp.date,
+            "type": "personal",
+        })
+
+    # Deudas de otros
+    debt_query = (
+        db.query(ExpenseSplit, Expense, Category)
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .join(Category, Expense.category_id == Category.id, isouter=True)
+        .join(household_members, Expense.household_id == household_members.c.household_id)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            ExpenseSplit.user_id == current_user.id,
+            Expense.paid_by != current_user.id,
+            ExpenseSplit.paid == False,
+        )
+    )
+    if start_date:
+        debt_query = debt_query.filter(Expense.date >= start_date)
+    if end_date:
+        debt_query = debt_query.filter(Expense.date <= end_date)
+
+    for split, expense, category in debt_query.all():
+        results.append({
+            "description": expense.description or "Sin descripción",
+            "amount": split.amount,
+            "category_name": category.name if category else "Sin categoría",
+            "date": expense.date,
+            "type": "debt",
+        })
+
+    # Ordenar por monto descendente y limitar
+    results.sort(key=lambda x: x["amount"], reverse=True)
+    return results[:limit]
 
 
 @router.post("/expenses", response_model=PersonalExpenseResponse)
