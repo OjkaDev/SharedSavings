@@ -37,7 +37,7 @@ Proyecto-Cuenta/
 │   │   ├── config.py          # Env vars + DEFAULT_CATEGORIES
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   └── database.py  # 6 SQLAlchemy models + SessionLocal + get_db()
+│   │   │   └── database.py  # 7 SQLAlchemy tables + SessionLocal + get_db()
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
 │   │   │   └── schemas.py   # All Pydantic request/response schemas
@@ -95,7 +95,7 @@ Proyecto-Cuenta/
 
 ---
 
-## Database Models (6 tables)
+## Database Models (7 tables)
 
 ```
 users (1) <--M--> household_members (M) <--M--> (1) households
@@ -105,19 +105,26 @@ users (1) <--M--> household_members (M) <--M--> (1) households
   |--> (M) expenses (paid_by)                        |      |--> (M) expense_splits
                                                       |
                                                       |--> (M) categories
+                                                      |--> (M) household_categories (N:M)
 ```
 
 | Model | Key Columns | Notes |
 |-------|-----------|-------|
 | **User** | id, email(unique), name, password_hash | M2M households, 1:N personal_expenses, 1:N expenses_paid, 1:N expense_splits |
-| **Household** | id, name, created_by(FK->users) | 1:N expenses (cascade delete), M2M members |
+| **Household** | id, name, created_by(FK->users) | 1:N expenses (cascade delete), M2M members, M2M categories |
 | **household_members** | user_id, household_id, role("owner"/"member"), joined_at | Association table |
-| **Category** | id, name, icon, is_default, household_id, created_by | is_default=True + created_by=None = global (all users see); custom = user created |
+| **household_categories** | id, household_id, category_id (unique constraint) | Junction table: links custom categories to households for visibility |
+| **Category** | id, name, icon, is_default, household_id, created_by | Default (global, all users see); Custom (owner only, unless linked via household_categories) |
 | **Expense** | id, household_id, paid_by, amount, description, category_id, date, split_type("equal"/"percentage"), personal_expense_id | Links to PersonalExpense |
 | **ExpenseSplit** | id, expense_id, user_id, amount, percentage, paid | Who owes what + payment status |
 | **PersonalExpense** | id, user_id, amount, description, category_id, date, type("expense"/"income") | Personal transactions |
 
-**Auto-create:** `Base.metadata.create_all()` runs on every startup (main.py:9). Default global categories are seeded once at startup (main.py:12-42).
+**Category visibility rules:**
+- Default (`is_default=True`): visible to all users
+- Custom (`created_by=user_id`): visible only to creator
+- Custom + linked to household (`household_categories`): visible to all household members
+
+**Auto-create:** `Base.metadata.create_all()` runs on every startup (main.py:9). Default global categories are seeded once at startup (main.py:12-36).
 
 ---
 
@@ -164,7 +171,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/personal/expenses` | Yes | List + debts from others (includes is_debt, is_paid) |
-| GET | `/api/personal/summary` | Yes | Income/expenses/balance (includes debts) |
+| GET | `/api/personal/summary` | Yes | Income/expenses/balance (includes debts by category with visibility rules) |
 | GET | `/api/personal/monthly` | Yes | Monthly income/expenses |
 | POST | `/api/personal/expenses` | Yes | Create income or expense |
 | DELETE | `/api/personal/expenses/{id}` | Yes | Delete (blocked if shared) |
@@ -172,12 +179,12 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 ### Categories (`/api/categories`)
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/categories/` | Yes | List (default + user's own) |
+| GET | `/api/categories/` | Yes | List (default + user's own + household-linked) |
 | POST | `/api/categories/` | Yes | Create global category |
 | PUT | `/api/categories/{id}` | Yes | Update (owner only) |
 | DELETE | `/api/categories/{id}` | Yes | Delete (owner only) |
 
-**Note:** Default categories are global (created once at startup). All users can see them. Custom categories belong to the user who created them.
+**Note:** Default categories are global (created once at startup). All users can see them. Custom categories belong to the user who created them, but are auto-linked to the household when sharing an expense (via `household_categories` junction table).
 
 ---
 
@@ -208,7 +215,8 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 1. Select transactions in PersonalFinances (checkboxes)
 2. Open ShareToHouseholdModal → pick household → configure split
 3. POST `/api/expenses/share` → creates Expense + ExpenseSplit
-4. Shared transactions show badge with split info
+4. If category is custom, auto-links it to household via `household_categories`
+5. Shared transactions show badge with split info
 
 ### Debt Calculation
 - Debts from `ExpenseSplit.paid` status
@@ -270,6 +278,10 @@ The `/personal/expenses` endpoint returns a unified list:
 - **Categories redesign:** Global default categories (visible to all users) + user custom categories
 - Emoji suggestions panel in Settings (click outside to close)
 - Responsive UI improvements for mobile
+- Reports page redesigned with dark theme matching Dashboard + mobile responsive
+- Household categories junction table (`household_categories`) for custom category visibility in shared expenses
+- Auto-link custom categories to household when sharing expenses
+- Reports by_category includes shared expense debts with proper visibility rules
 
 **Pending:**
 - Database review and security
@@ -286,16 +298,18 @@ The `/personal/expenses` endpoint returns a unified list:
 5. **No expense updates** — Create/delete only
 6. **Profile update uses query param** — `PUT /api/auth/profile?name=foo`
 7. **Default categories** — 7 Spanish categories, global (created once at startup), visible to all users
-8. **Tailwind v4** — `@import "tailwindcss"` not `@tailwind`
-9. **Vite proxy** — `/api` → `localhost:8000`
-10. **DateFilter** — Returns `{ start_date, end_date, month, year }`
-11. **my_share field** — Proportional part for shared expenses
-12. **is_debt/is_paid fields** — Track debts from and to others
-13. **Debts in summary** — Total includes unpaid debts from others
-14. **Protected actions** — Cannot delete/unshare others' expenses
-15. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
-16. **Emoji suggestions** — Panel shows on input focus, closes on click outside
-17. **Color scheme:**
+8. **Custom category visibility** — `household_categories` junction table links custom categories to households. Auto-linked when sharing expenses.
+9. **Reports category filter** — `by_category` in summary only shows categories the user can access (default + household-linked). Custom categories not associated with user's households are excluded.
+10. **Tailwind v4** — `@import "tailwindcss"` not `@tailwind`
+11. **Vite proxy** — `/api` → `localhost:8000`
+12. **DateFilter** — Returns `{ start_date, end_date, month, year }`
+13. **my_share field** — Proportional part for shared expenses
+14. **is_debt/is_paid fields** — Track debts from and to others
+15. **Debts in summary** — Total includes unpaid debts from others (with category visibility)
+16. **Protected actions** — Cannot delete/unshare others' expenses
+17. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
+18. **Emoji suggestions** — Panel shows on input focus, closes on click outside
+19. **Color scheme:**
      - Ingreso: 🟢 green
      - Gasto: 🔴 red
      - Shared by me: 🔴 red + "(€X compartido)"
@@ -307,10 +321,10 @@ The `/personal/expenses` endpoint returns a unified list:
 ## Recent Commits
 
 ```
-xxxxxxx Feat: Redesign categories - global default categories visible to all users
-xxxxxxx Feat: Settings page with sidebar navigation (Perfil + Categorías)
-xxxxxxx Feat: Unified profile + password in one section
-xxxxxxx Feat: Emoji suggestions panel with click-outside-to-close
+6550805 Feat: Associate custom categories to households via junction table for shared expense visibility
+de44aa1 Feat: Include shared expense debts in reports by category and monthly breakdown
+83936ba Feat: Redesign Reports page to match Dashboard style with dark theme and mobile responsiveness
+e088a51 Feat: Redesign categories - global defaults + Settings sidebar + emoji panel
 b45ce2b Feat: Incluir deudas en summary + proteger acciones de gastos de otros
 92c5f5b Feat: Mostrar estado de pago en deudas - naranja (debes), púrpura (te deben), rojo (pagado)
 200a2fd Feat: Mostrar deudas de gastos compartidos por otros en finanzas personales
