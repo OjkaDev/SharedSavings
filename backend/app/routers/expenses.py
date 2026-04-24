@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import datetime
-from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, PersonalExpense
+from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, household_categories, PersonalExpense
 from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse, MonthlySharedData
 from app.utils.auth import get_current_user
 
@@ -242,6 +242,20 @@ def share_expenses_to_household(
             continue
 
         # Crear el gasto compartido
+        # Asociar categoría custom a la vivienda si no está asociada
+        if personal_expense.category_id:
+            category = db.query(Category).filter(Category.id == personal_expense.category_id).first()
+            if category and not category.is_default:
+                existing_link = db.query(household_categories).filter(
+                    household_categories.c.household_id == share_data.household_id,
+                    household_categories.c.category_id == category.id,
+                ).first()
+                if not existing_link:
+                    db.execute(household_categories.insert().values(
+                        household_id=share_data.household_id,
+                        category_id=category.id,
+                    ))
+
         expense = Expense(
             household_id=share_data.household_id,
             paid_by=current_user.id,

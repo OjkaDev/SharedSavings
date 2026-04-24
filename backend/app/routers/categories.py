@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List
-from app.models.database import get_db, User, Category
+from app.models.database import get_db, User, Category, household_members, household_categories
 from app.schemas.schemas import CategoryCreate, CategoryResponse
 from app.utils.auth import get_current_user
 
@@ -13,10 +14,21 @@ def get_categories(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Get default categories (is_default=True) + user's own categories
-    return db.query(Category).filter(
-        (Category.is_default == True) | (Category.created_by == current_user.id)
-    ).all()
+    # Get household IDs for the current user
+    household_ids = [h.id for h in current_user.households]
+
+    query = db.query(Category).distinct().outerjoin(
+        household_categories,
+        Category.id == household_categories.c.category_id,
+    ).filter(
+        or_(
+            Category.is_default == True,
+            Category.created_by == current_user.id,
+            household_categories.c.household_id.in_(household_ids) if household_ids else False,
+        )
+    )
+
+    return query.all()
 
 
 @router.post("/", response_model=CategoryResponse)

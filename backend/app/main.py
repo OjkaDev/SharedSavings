@@ -11,13 +11,6 @@ Base.metadata.create_all(bind=engine)
 # Seed default global categories (only if they don't exist)
 def seed_default_categories():
     with Session(engine) as db:
-        # Migrate existing categories with household_id to global (household_id = None)
-        existing_with_household = db.query(Category).filter(
-            Category.household_id != None
-        ).update({Category.household_id: None}, synchronize_session=False)
-        if existing_with_household > 0:
-            print(f"✓ Migrated {existing_with_household} categories to global")
-        
         # Create default global categories if they don't exist
         existing_defaults = db.query(Category).filter(
             Category.is_default == True,

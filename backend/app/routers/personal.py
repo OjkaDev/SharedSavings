@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 from typing import List, Optional
 from datetime import datetime
-from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members
+from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members, household_categories
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData
 from app.utils.auth import get_current_user
 
@@ -167,16 +167,28 @@ def get_personal_summary(
         by_category_dict[cat_name] = by_category_dict.get(cat_name, 0) + amount
 
     # Agregar deudas de otros (gastos compartidos por otros en mis viviendas)
+    # Solo categorías accesibles: default o asociadas a mis viviendas
+    household_ids = [h.id for h in current_user.households]
+
     debt_cat_query = (
         db.query(Category.name, func.sum(ExpenseSplit.amount))
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
-        .join(Category, Expense.category_id == Category.id, isouter=True)
+        .join(Category, Expense.category_id == Category.id)
         .join(household_members, Expense.household_id == household_members.c.household_id)
+        .outerjoin(
+            household_categories,
+            (Category.id == household_categories.c.category_id)
+            & (household_categories.c.household_id.in_(household_ids)),
+        )
         .filter(
             household_members.c.user_id == current_user.id,
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
             ExpenseSplit.paid == False,
+            or_(
+                Category.is_default == True,
+                household_categories.c.household_id.isnot(None),
+            ),
         )
     )
     if start_date:

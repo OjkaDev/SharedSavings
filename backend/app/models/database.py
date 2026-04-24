@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Table
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Table, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import func
@@ -24,6 +24,16 @@ household_members = Table(
     Column("household_id", Integer, ForeignKey("households.id"), primary_key=True),
     Column("role", String(20), default="member"),
     Column("joined_at", DateTime(timezone=True), server_default=func.now()),
+)
+
+
+household_categories = Table(
+    "household_categories",
+    Base.metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("household_id", Integer, ForeignKey("households.id", ondelete="CASCADE"), nullable=False),
+    Column("category_id", Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False),
+    UniqueConstraint("household_id", "category_id", name="uq_household_category"),
 )
 
 
