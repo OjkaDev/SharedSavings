@@ -76,13 +76,13 @@ Proyecto-Cuenta/
 │   │   │   ├── HouseholdDetail.jsx # Debts + shared expenses
 │   │   │   ├── PersonalFinances.jsx # CRUD + share to household
 │   │   │   ├── Settings.jsx        # Profile, password, categories
-│   │   │   └── Reports.jsx        # 5 Chart.js graphs
+│   │   │   └── Reports.jsx        # 4 Chart.js graphs + period filter
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx  # {user, loading, login, register, logout}
 │   │   ├── services/
 │   │   │   └── api.js         # Axios + auth interceptor + 401 redirect
 │   │   └── utils/
-│   │       └── dateUtils.js   # getMonthRange, getCurrentMonth, MONTHS
+│   │       └── dateUtils.js   # Period helpers (month/quarter/semester/year) + getCurrentMonth, MONTHS, PERIODS
 │   ├── package.json
 │   ├── vite.config.js      # Proxy /api -> localhost:8000
 │   ├── tailwind.config.js
@@ -173,6 +173,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | GET | `/api/personal/expenses` | Yes | List + debts from others (includes is_debt, is_paid) |
 | GET | `/api/personal/summary` | Yes | Income/expenses/balance (includes debts by category with visibility rules) |
 | GET | `/api/personal/monthly` | Yes | Monthly income/expenses |
+| GET | `/api/personal/top-expenses` | Yes | Top 10 expenses by amount (personal + debts, filterable by date range) |
 | POST | `/api/personal/expenses` | Yes | Create income or expense |
 | DELETE | `/api/personal/expenses/{id}` | Yes | Delete (blocked if shared) |
 
@@ -247,6 +248,7 @@ The `/personal/expenses` endpoint returns a unified list:
 | PersonalExpenseCreate | amount, description?, category_id?, date, type("expense") |
 | PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid? |
 | PersonalSummary | income, expenses, balance, by_category |
+| TopExpense | description, amount, category_name, date, type("personal"/"debt") |
 | MonthlyPersonalData | month, income, expenses, balance |
 | MonthlySharedData | month, total, my_share |
 | DebtDetail | user_id, user_name, user_email, amount_owed, splits[] |
@@ -267,9 +269,10 @@ The `/personal/expenses` endpoint returns a unified list:
 - Settings page with sidebar navigation (Perfil, Categorías)
 - Profile + Password unified in one section
 - Date filters on PersonalFinances, HouseholdDetail, Reports
-- Reports page with 5 Chart.js graphs
+- Reports page with 4 Chart.js graphs + period filter (month/quarter/semester/year)
 - Dashboard with real data from current month
-- Unified year selector in Reports (DateFilter)
+- DateFilter redesigned with segmented control (period selector) + SVG chevron arrows
+- Period-aware stats: income/expenses/savings/shared respond to selected period
 - PersonalFinances shows my_share for shared expenses
 - Personal summary calculates proportional share
 - PersonalFinances shows debts from others (is_debt, is_paid)
@@ -282,6 +285,8 @@ The `/personal/expenses` endpoint returns a unified list:
 - Household categories junction table (`household_categories`) for custom category visibility in shared expenses
 - Auto-link custom categories to household when sharing expenses
 - Reports by_category includes shared expense debts with proper visibility rules
+- Top Gastos chart (horizontal bars) replaces Evolución mensual + Ahorro mensual
+- GET /personal/top-expenses endpoint (combines personal expenses + debts, sorted by amount)
 
 **Pending:**
 - Database review and security
@@ -321,6 +326,8 @@ The `/personal/expenses` endpoint returns a unified list:
 ## Recent Commits
 
 ```
+a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter
+8b1eda9 Docs: Update AGENTS.md with Reports redesign, household_categories, and category visibility rules
 6550805 Feat: Associate custom categories to households via junction table for shared expense visibility
 de44aa1 Feat: Include shared expense debts in reports by category and monthly breakdown
 83936ba Feat: Redesign Reports page to match Dashboard style with dark theme and mobile responsiveness
