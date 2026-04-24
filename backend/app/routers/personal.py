@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import datetime
-from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit
+from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData
 from app.utils.auth import get_current_user
 
@@ -166,6 +166,28 @@ def get_personal_summary(
         cat_name = exp.category.name if exp.category else "Sin categoría"
         by_category_dict[cat_name] = by_category_dict.get(cat_name, 0) + amount
 
+    # Agregar deudas de otros (gastos compartidos por otros en mis viviendas)
+    debt_cat_query = (
+        db.query(Category.name, func.sum(ExpenseSplit.amount))
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .join(Category, Expense.category_id == Category.id, isouter=True)
+        .join(household_members, Expense.household_id == household_members.c.household_id)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            ExpenseSplit.user_id == current_user.id,
+            Expense.paid_by != current_user.id,
+            ExpenseSplit.paid == False,
+        )
+    )
+    if start_date:
+        debt_cat_query = debt_cat_query.filter(Expense.date >= start_date)
+    if end_date:
+        debt_cat_query = debt_cat_query.filter(Expense.date <= end_date)
+
+    for cat_name, total in debt_cat_query.group_by(Category.name).all():
+        name = cat_name or "Sin categoría"
+        by_category_dict[name] = by_category_dict.get(name, 0) + float(total)
+
     by_category = [{"name": name, "total": float(total)} for name, total in by_category_dict.items()]
 
     # Agregar deudas no pagadas al total de gastos
@@ -227,6 +249,29 @@ def get_monthly_personal(
             result[idx]["income"] = float(total)
         else:
             result[idx]["expenses"] = float(total)
+
+    # Agregar deudas de otros (gastos compartidos por otros en mis viviendas)
+    monthly_debts = (
+        db.query(
+            extract('month', Expense.date).label('month'),
+            func.sum(ExpenseSplit.amount).label('total'),
+        )
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .join(household_members, Expense.household_id == household_members.c.household_id)
+        .filter(
+            household_members.c.user_id == current_user.id,
+            ExpenseSplit.user_id == current_user.id,
+            Expense.paid_by != current_user.id,
+            ExpenseSplit.paid == False,
+            extract('year', Expense.date) == year,
+        )
+        .group_by('month')
+        .all()
+    )
+
+    for month_num, debt_total in monthly_debts:
+        idx = int(month_num) - 1
+        result[idx]["expenses"] += float(debt_total)
 
     # Calcular balance
     for item in result:
