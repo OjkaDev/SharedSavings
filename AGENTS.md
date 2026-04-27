@@ -44,7 +44,7 @@ Proyecto-Cuenta/
 │   │   ├── routers/
 │   │   │   ├── __init__.py
 │   │   │   ├── auth.py      # POST /register, /login; GET /me; PUT /profile, /password
-│   │   │   ├── households.py  # CRUD + invite + debts + pay-all
+│   │   │   ├── households.py  # CRUD + invite + debts + pay-all + pay-member
 │   │   │   ├── expenses.py    # CRUD + summary + share/unshare + monthly
 │   │   │   ├── personal.py    # CRUD personal expenses + summary + monthly + debts
 │   │   │   └── categories.py  # CRUD (default categories protected)
@@ -73,8 +73,8 @@ Proyecto-Cuenta/
 │   │   │   ├── Register.jsx       # Registration form
 │   │   │   ├── Dashboard.jsx     # Stats with real data
 │   │   │   ├── Household.jsx      # List/create/delete households
-│   │   │   ├── HouseholdDetail.jsx # Debts + shared expenses
-│   │   │   ├── PersonalFinances.jsx # CRUD + share to household
+│   │   │   ├── HouseholdDetail.jsx # Stats Dashboard style + debts + shared expenses with status
+│   │   │   ├── PersonalFinances.jsx # CRUD + share to household + FAB + period filter
 │   │   │   ├── Settings.jsx        # Profile, password, categories
 │   │   │   └── Reports.jsx        # 4 Chart.js graphs + period filter
 │   │   ├── context/
@@ -246,7 +246,7 @@ The `/personal/expenses` endpoint returns a unified list:
 | ExpenseCreate | household_id, amount, description?, category_id?, date, split_type, splits[] |
 | ExpenseResponse | id, household_id, paid_by, amount, ..., splits[] |
 | PersonalExpenseCreate | amount, description?, category_id?, date, type("expense") |
-| PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid? |
+| PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid?, is_fully_paid? |
 | PersonalSummary | income, expenses, balance, by_category |
 | TopExpense | description, amount, category_name, date, type("personal"/"debt") |
 | MonthlyPersonalData | month, income, expenses, balance |
@@ -287,6 +287,15 @@ The `/personal/expenses` endpoint returns a unified list:
 - Reports by_category includes shared expense debts with proper visibility rules
 - Top Gastos chart (horizontal bars) replaces Evolución mensual + Ahorro mensual
 - GET /personal/top-expenses endpoint (combines personal expenses + debts, sorted by amount)
+- PersonalFinances redesigned with dark theme (Dashboard style), FAB button (dynamic: +/share)
+- getPeriodLabel() shared utility in dateUtils.js (used by Reports, PersonalFinances, HouseholdDetail)
+- HouseholdDetail redesigned with Dashboard-style stats, status column, individual pay buttons
+- PUT /households/{id}/pay-member endpoint for paying debts to specific member
+- is_fully_paid flag on shared expenses (all non-payer splits paid)
+- Paid debts still counted in monthly summary (no paid==False filter)
+- Date filter on debt_total in summary endpoint
+- Fixed: table-header alignment (added px-4)
+- fab and fab-secondary CSS utilities for floating action buttons
 
 **Pending:**
 - Database review and security
@@ -311,15 +320,19 @@ The `/personal/expenses` endpoint returns a unified list:
 13. **my_share field** — Proportional part for shared expenses
 14. **is_debt/is_paid fields** — Track debts from and to others
 15. **Debts in summary** — Total includes unpaid debts from others (with category visibility)
-16. **Protected actions** — Cannot delete/unshare others' expenses
+16. **Protected actions** — Cannot delete/unshare others' expenses. Cannot unshare/delete fully paid shared expenses.
 17. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
 18. **Emoji suggestions** — Panel shows on input focus, closes on click outside
-19. **Color scheme:**
+19. **is_fully_paid** — Computed in GET /personal/expenses: checks if all non-payer splits are paid
+20. **FAB button** — Dynamic: + (green) when no selection, house icon (gray) when items selected for sharing
+21. **Debts in reports** — Include paid and unpaid debts (removed paid==False filter from summary/monthly)
+22. **Color scheme:**
      - Ingreso: 🟢 green
      - Gasto: 🔴 red
      - Shared by me: 🔴 red + "(€X compartido)"
      - Deuda (unpaid): 🟠 orange + "(debes)"
-     - Pagado (others paid): 🔴 red + "(te deben)"
+     - Pagado (debt paid): no subtitle (was "(te deber)" — removed)
+     - Pagado (shared settled): 🟢 green badge "Pagado"
 
 ---
 

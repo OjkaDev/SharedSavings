@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
+from pydantic import BaseModel
 from app.models.database import get_db, User, Household, household_members, Category, Expense, ExpenseSplit
 from app.schemas.schemas import HouseholdCreate, HouseholdResponse, HouseholdMemberResponse, InviteMember, DebtSummary, DebtDetail
 from app.utils.auth import get_current_user
@@ -252,6 +253,55 @@ def pay_all_debts(
             ExpenseSplit.user_id == current_user.id,
             ExpenseSplit.paid == False,
             Expense.paid_by != current_user.id,
+        )
+        .all()
+    )
+
+    for split in splits_to_pay:
+        split.paid = True
+
+    db.commit()
+
+    return {
+        "message": f"Se marcaron {len(splits_to_pay)} pagos como realizados",
+        "paid_count": len(splits_to_pay),
+    }
+
+
+class PayMemberRequest(BaseModel):
+    user_id: int
+
+
+@router.put("/{household_id}/pay-member")
+def pay_member_debts(
+    household_id: int,
+    body: PayMemberRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Marcar deudas como pagadas con un miembro específico"""
+    household = db.query(Household).filter(Household.id == household_id).first()
+    if not household:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Household not found",
+        )
+
+    if current_user not in household.members:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this household",
+        )
+
+    # Marcar como pagados los splits donde el usuario actual debe al miembro específico
+    splits_to_pay = (
+        db.query(ExpenseSplit)
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .filter(
+            Expense.household_id == household_id,
+            ExpenseSplit.user_id == current_user.id,
+            ExpenseSplit.paid == False,
+            Expense.paid_by == body.user_id,
         )
         .all()
     )

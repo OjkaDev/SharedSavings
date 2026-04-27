@@ -43,6 +43,7 @@ def get_personal_expenses(
         
         my_share = None
         is_shared_by_me = False
+        is_fully_paid = False
         if shared_expense_id:
             split = db.query(ExpenseSplit).filter(
                 ExpenseSplit.expense_id == shared_expense_id,
@@ -50,6 +51,12 @@ def get_personal_expenses(
             ).first()
             my_share = split.amount if split else None
             is_shared_by_me = True
+            # Verificar si todos los splits (excepto pagador) están pagados
+            other_splits = db.query(ExpenseSplit).filter(
+                ExpenseSplit.expense_id == shared_expense_id,
+                ExpenseSplit.user_id != current_user.id,
+            ).all()
+            is_fully_paid = all(s.paid for s in other_splits) if other_splits else True
         
         exp_dict = {
             "id": exp.id,
@@ -65,6 +72,7 @@ def get_personal_expenses(
             "my_share": my_share,
             "is_shared_by_me": is_shared_by_me,
             "is_debt": False,
+            "is_fully_paid": is_fully_paid,
         }
         result.append(exp_dict)
     
@@ -184,7 +192,6 @@ def get_personal_summary(
             household_members.c.user_id == current_user.id,
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
-            ExpenseSplit.paid == False,
             or_(
                 Category.is_default == True,
                 household_categories.c.household_id.isnot(None),
@@ -202,18 +209,20 @@ def get_personal_summary(
 
     by_category = [{"name": name, "total": float(total)} for name, total in by_category_dict.items()]
 
-    # Agregar deudas no pagadas al total de gastos
-    debt_total = (
+    # Agregar deudas (pagadas y no pagadas) al total de gastos, filtradas por fecha
+    debt_total_query = (
         db.query(func.sum(ExpenseSplit.amount))
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .filter(
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
-            ExpenseSplit.paid == False,
         )
-        .scalar()
-        or 0
     )
+    if start_date:
+        debt_total_query = debt_total_query.filter(Expense.date >= start_date)
+    if end_date:
+        debt_total_query = debt_total_query.filter(Expense.date <= end_date)
+    debt_total = debt_total_query.scalar() or 0
     total_expenses_with_debts = float(personal_only_expenses) + float(debt_total)
 
     return PersonalSummary(
@@ -274,7 +283,6 @@ def get_monthly_personal(
             household_members.c.user_id == current_user.id,
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
-            ExpenseSplit.paid == False,
             extract('year', Expense.date) == year,
         )
         .group_by('month')

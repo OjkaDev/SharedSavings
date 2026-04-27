@@ -253,6 +253,8 @@ export default function PersonalFinances() {
                             ? 'badge-warning'
                             : transaction.is_debt && transaction.is_paid
                             ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                            : transaction.is_fully_paid
+                            ? 'badge-success'
                             : transaction.type === 'income'
                             ? 'badge-success'
                             : 'badge-danger'
@@ -261,6 +263,8 @@ export default function PersonalFinances() {
                         {transaction.is_debt && !transaction.is_paid
                           ? 'Deuda'
                           : transaction.is_debt && transaction.is_paid
+                          ? 'Pagado'
+                          : transaction.is_fully_paid
                           ? 'Pagado'
                           : transaction.type === 'income'
                           ? 'Ingreso'
@@ -296,15 +300,10 @@ export default function PersonalFinances() {
                           (debes)
                         </span>
                       )}
-                      {transaction.is_debt && transaction.is_paid && (
-                        <span className="block text-xs text-purple-400">
-                          (te deben)
-                        </span>
-                      )}
                     </td>
                     <td className="table-cell text-right">
                       <div className="flex justify-end space-x-2">
-                        {transaction.shared_expense_id && !transaction.is_debt && (
+                        {transaction.shared_expense_id && !transaction.is_debt && !transaction.is_fully_paid && (
                           <button
                             onClick={() => unshareExpense(transaction.shared_expense_id)}
                             className="text-yellow-400 hover:text-yellow-300 transition"
@@ -316,7 +315,9 @@ export default function PersonalFinances() {
                         <button
                           onClick={() => deleteTransaction(transaction.id)}
                           className={`transition ${
-                            transaction.is_debt || transaction.shared_expense_id
+                            transaction.is_debt || (transaction.shared_expense_id && transaction.is_fully_paid)
+                              ? 'text-dark-600 cursor-not-allowed'
+                              : transaction.shared_expense_id
                               ? 'text-dark-600 cursor-not-allowed'
                               : 'text-dark-400 hover:text-red-400'
                           }`}
@@ -324,6 +325,8 @@ export default function PersonalFinances() {
                           title={
                             transaction.is_debt
                               ? 'No puedes eliminar gastos de otros'
+                              : transaction.is_fully_paid
+                              ? 'Gasto saldado, no se puede eliminar'
                               : transaction.shared_expense_id
                               ? 'Descomparte primero'
                               : 'Eliminar'
