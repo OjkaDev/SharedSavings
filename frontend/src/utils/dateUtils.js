@@ -78,4 +78,17 @@ export function getAvailableYears() {
   return [current - 2, current - 1, current, current + 1, current + 2]
 }
 
+export function getPeriodLabel(dateRange) {
+  const year = dateRange?.year || new Date().getFullYear()
+  if (!dateRange?.period) return `de ${year}`
+  const { period, subPeriod } = dateRange
+  switch (period) {
+    case 'month': return `de ${MONTHS[(subPeriod || 1) - 1]} ${year}`
+    case 'quarter': return `de Q${subPeriod || 1} ${year}`
+    case 'semester': return `de S${subPeriod || 1} ${year}`
+    case 'year': return `de ${year}`
+    default: return `de ${year}`
+  }
+}
+
 export { MONTHS, PERIODS }

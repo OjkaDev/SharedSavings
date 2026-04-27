@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
 import DateFilter from '../components/DateFilter'
-import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
 import {
   PlusIcon,
   ArrowUpIcon,
@@ -146,93 +146,46 @@ export default function PersonalFinances() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="heading">Finanzas Personales</h1>
-          <p className="subheading mt-1">
-            Gestiona tus ingresos y gastos
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={() => setShowShareModal(true)}
-              disabled={selectedTransactions.length === 0}
-              className={`btn-secondary inline-flex items-center ${
-                selectedTransactions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              <HomeIcon className="h-5 w-5 mr-2" />
-              Compartir ({selectedTransactions.length})
-            </button>
-          )}
-          <button
-            onClick={() => setShowModal(true)}
-            className="btn-primary inline-flex items-center"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Nuevo Registro
-          </button>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="heading">Finanzas Personales</h1>
+        <p className="subheading mt-1">Gestiona tus ingresos y gastos</p>
       </div>
 
       <DateFilter onChange={setDateRange} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-green-500/10 border-green-500/30">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-500/20 rounded-xl mr-3">
-              <ArrowUpIcon className="h-6 w-6 text-green-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        {[
+          {
+            name: 'Ingresos',
+            value: `€${summary.income.toFixed(2)}`,
+            icon: ArrowUpIcon,
+            gradient: 'from-green-400 to-emerald-500',
+          },
+          {
+            name: 'Gastos',
+            value: `€${summary.expenses.toFixed(2)}`,
+            icon: ArrowDownIcon,
+            gradient: 'from-red-400 to-rose-500',
+          },
+          {
+            name: 'Balance',
+            value: `€${summary.balance.toFixed(2)}`,
+            icon: PlusIcon,
+            gradient: summary.balance >= 0 ? 'from-cyan-400 to-blue-500' : 'from-orange-400 to-red-500',
+          },
+        ].map((stat) => (
+          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
+            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
+            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
+                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
+              </div>
+              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
             </div>
-            <div>
-              <p className="text-sm text-green-400 font-medium">Ingresos</p>
-              <p className="text-2xl font-bold text-green-400">
-                €{summary.income.toFixed(2)}
-              </p>
-            </div>
+            <p className="text-dark-500 text-xs">Total {getPeriodLabel(dateRange)}</p>
           </div>
-        </div>
-        <div className="card bg-red-500/10 border-red-500/30">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-500/20 rounded-xl mr-3">
-              <ArrowDownIcon className="h-6 w-6 text-red-400" />
-            </div>
-            <div>
-              <p className="text-sm text-red-400 font-medium">Gastos</p>
-              <p className="text-2xl font-bold text-red-400">
-                €{summary.expenses.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className={`card border ${
-            summary.balance >= 0
-              ? 'bg-blue-500/10 border-blue-500/30'
-              : 'bg-orange-500/10 border-orange-500/30'
-          }`}>
-          <div className="flex items-center">
-            <div className={`p-2 rounded-xl mr-3 ${
-                summary.balance >= 0 ? 'bg-blue-500/20' : 'bg-orange-500/20'
-              }`}>
-              <span className={`text-xl font-bold ${
-                summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
-              }`}>€</span>
-            </div>
-            <div>
-              <p className={`text-sm font-medium ${
-                  summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
-                }`}>
-                Balance
-              </p>
-              <p className={`text-2xl font-bold ${
-                  summary.balance >= 0 ? 'text-blue-400' : 'text-orange-400'
-                }`}>
-                €{summary.balance.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       <div className="card">
@@ -257,12 +210,7 @@ export default function PersonalFinances() {
               <thead>
                 <tr className="border-b border-dark-700">
                   <th className="table-header py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.length === transactions.length}
-                      onChange={toggleSelectAll}
-                      className="rounded bg-dark-800 border-dark-600"
-                    />
+                    <HomeIcon className="h-4 w-4 text-dark-400" />
                   </th>
                   <th className="table-header py-3">Fecha</th>
                   <th className="table-header py-3">Descripción</th>
@@ -302,9 +250,9 @@ export default function PersonalFinances() {
                       <span
                         className={`badge ${
                           transaction.is_debt && !transaction.is_paid
-                            ? 'bg-orange-100 text-orange-800'
+                            ? 'badge-warning'
                             : transaction.is_debt && transaction.is_paid
-                            ? 'bg-purple-100 text-purple-800'
+                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                             : transaction.type === 'income'
                             ? 'badge-success'
                             : 'badge-danger'
@@ -319,15 +267,15 @@ export default function PersonalFinances() {
                           : 'Gasto'}
                       </span>
                     </td>
-<td
+                    <td
                       className={`px-4 py-3 text-sm font-semibold text-right ${
                         transaction.is_debt && !transaction.is_paid
-                          ? 'text-orange-600'
+                          ? 'text-orange-400'
                           : transaction.is_debt && transaction.is_paid
-                          ? 'text-red-600'
+                          ? 'text-purple-400'
                           : transaction.type === 'income'
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                          ? 'text-primary-400'
+                          : 'text-red-400'
                       }`}
                     >
                       {transaction.is_debt ? (
@@ -338,18 +286,18 @@ export default function PersonalFinances() {
                         <>-€{parseFloat(transaction.amount).toFixed(2)}</>
                       )}
                       {!transaction.is_debt && transaction.my_share !== null && transaction.my_share !== undefined && (
-                        <span className="block text-xs text-purple-600">
+                        <span className="block text-xs text-purple-400">
                           (€
                           {parseFloat(transaction.my_share).toFixed(2)} compartido)
                         </span>
                       )}
                       {transaction.is_debt && !transaction.is_paid && (
-                        <span className="block text-xs text-orange-600">
+                        <span className="block text-xs text-orange-400">
                           (debes)
                         </span>
                       )}
                       {transaction.is_debt && transaction.is_paid && (
-                        <span className="block text-xs text-purple-600">
+                        <span className="block text-xs text-purple-400">
                           (te deben)
                         </span>
                       )}
@@ -395,7 +343,7 @@ export default function PersonalFinances() {
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="card max-w-md w-full mx-4">
+          <div className="modal-content">
             <h2 className="text-xl font-semibold mb-6 text-dark-100">Nuevo Registro</h2>
             <form onSubmit={handleSubmit}>
               <div className="space-y-5">
@@ -522,6 +470,30 @@ export default function PersonalFinances() {
         onSubmit={handleShare}
         selectedExpenses={selectedTransactions}
       />
+
+      {/* FAB: Compartir o Nuevo Registro */}
+      {selectedIds.length > 0 ? (
+        <button
+          onClick={() => setShowShareModal(true)}
+          disabled={selectedTransactions.length === 0}
+          className={`fab-secondary h-14 w-14 sm:w-auto sm:px-6 sm:gap-2 ${
+            selectedTransactions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          <HomeIcon className="h-6 w-6 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline text-sm font-semibold">
+            Compartir ({selectedTransactions.length})
+          </span>
+        </button>
+      ) : (
+        <button
+          onClick={() => setShowModal(true)}
+          className="fab h-14 w-14 sm:w-auto sm:px-6 sm:gap-2"
+        >
+          <PlusIcon className="h-6 w-6 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline text-sm font-semibold">Nuevo Registro</span>
+        </button>
+      )}
     </div>
   )
 }

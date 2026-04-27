@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '../services/api'
 import DateFilter from '../components/DateFilter'
-import { getCurrentMonth, getMonthRange } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -99,21 +99,7 @@ export default function Reports() {
 
   const monthsInRange = getMonthsInRange()
 
-  const getPeriodLabel = () => {
-    if (!dateRange?.period) return `de ${year}`
-    const { period, subPeriod } = dateRange
-    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-    switch (period) {
-      case 'month': return `${monthNames[(subPeriod || 1) - 1]} ${year}`
-      case 'quarter': return `Q${subPeriod || 1} ${year}`
-      case 'semester': return `S${subPeriod || 1} ${year}`
-      case 'year': return `${year}`
-      default: return `de ${year}`
-    }
-  }
-
-  const periodLabel = getPeriodLabel()
+  const periodLabel = getPeriodLabel(dateRange)
 
   const filteredPersonal = monthsInRange
     ? monthlyPersonal.filter(m => monthsInRange.includes(m.month))
