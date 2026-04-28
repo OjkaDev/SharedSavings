@@ -7,19 +7,42 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [showResend, setShowResend] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const { login, resendVerification } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setShowResend(false)
+    setResendSuccess(false)
     setLoading(true)
 
     try {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
+      const detail = err.response?.data?.detail
+      if (detail === 'EMAIL_NOT_CONFIRMED') {
+        setError('Tu email no ha sido verificado. Por favor, revisa tu correo y haz clic en el enlace de verificación.')
+        setShowResend(true)
+      } else {
+        setError(detail || 'Error al iniciar sesión')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setLoading(true)
+    try {
+      await resendVerification(email)
+      setResendSuccess(true)
+      setShowResend(false)
+    } catch (err) {
+      setError('Error al reenviar el correo de verificación')
     } finally {
       setLoading(false)
     }
@@ -41,8 +64,25 @@ export default function Login() {
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm">
                 {error}
+                {showResend && (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={loading}
+                    className="block mt-2 text-primary-400 hover:text-primary-300 underline text-sm"
+                  >
+                    Reenviar correo de verificación
+                  </button>
+                )}
               </div>
             )}
+
+            {resendSuccess && (
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl text-sm">
+                Correo de verificación enviado. Revisa tu bandeja de entrada.
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-dark-300 mb-2">
@@ -78,8 +118,11 @@ export default function Login() {
               {loading ? 'Iniciando...' : 'Iniciar Sesión'}
             </button>
 
-            <div className="text-center">
-              <Link to="/register" className="text-primary-400 hover:text-primary-300 text-sm transition-colors">
+            <div className="text-center space-y-2">
+              <Link to="/forgot-password" className="text-dark-400 hover:text-dark-300 text-sm transition-colors block">
+                ¿Olvidaste tu contraseña?
+              </Link>
+              <Link to="/register" className="text-primary-400 hover:text-primary-300 text-sm transition-colors block">
                 ¿No tienes cuenta? Regístrate
               </Link>
             </div>

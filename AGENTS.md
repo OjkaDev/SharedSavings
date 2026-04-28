@@ -13,7 +13,7 @@
 |-------|------------|------------|
 | Frontend | React 19 + Vite + Tailwind CSS v4 + Chart.js + Axios | Vercel |
 | Backend | FastAPI + SQLAlchemy + PostgreSQL (Supabase) | Render |
-| Auth | JWT (HS256, 30-day expiry, python-jose + passlib/bcrypt) | — |
+| Auth | **Supabase Auth** (ES256 JWT, email verification, password reset) | — |
 
 **Run the app:**
 ```bash
@@ -51,9 +51,9 @@ Proyecto-Cuenta/
 │   │   ├── services/        # EMPTY — business logic in routers
 │   │   └── utils/
 │   │       ├── __init__.py
-│   │       └── auth.py      # JWT create/verify + get_current_user
+│   │       └── auth.py      # JWT verify (ES256 with JWKS) + get_current_user
 │   ├── requirements.txt
-│   └── .env               # SUPABASE_URL, SUPABASE_KEY, SECRET_KEY, DATABASE_URL
+│   └── .env               # SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET, SECRET_KEY, DATABASE_URL
 │
 ├── frontend/
 │   ├── src/
@@ -69,8 +69,11 @@ Proyecto-Cuenta/
 │   │   │   ├── ShareToHouseholdModal.jsx  # 2-step: pick household, configure splits
 │   │   │   └── DateFilter.jsx         # Shared month/year filter
 │   │   ├── pages/
-│   │   │   ├── Login.jsx           # Login form
-│   │   │   ├── Register.jsx       # Registration form
+│   │   │   ├── Login.jsx           # Login form + "Forgot password" link
+│   │   │   ├── Register.jsx       # Registration + email exist detection
+│   │   │   ├── VerifyEmail.jsx    # Email verification handler
+│   │   │   ├── ForgotPassword.jsx # Request password reset
+│   │   │   ├── ResetPassword.jsx  # Set new password after reset
 │   │   │   ├── Dashboard.jsx     # Stats with real data
 │   │   │   ├── Household.jsx      # List/create/delete households
 │   │   │   ├── HouseholdDetail.jsx # Stats Dashboard style + debts + shared expenses with status
@@ -78,15 +81,18 @@ Proyecto-Cuenta/
 │   │   │   ├── Settings.jsx        # Profile, password, categories
 │   │   │   └── Reports.jsx        # 4 Chart.js graphs + period filter
 │   │   ├── context/
-│   │   │   └── AuthContext.jsx  # {user, loading, login, register, logout}
+│   │   │   └── AuthContext.jsx  # Supabase Auth: user, loading, login, register, logout, resetPassword, updatePassword
+│   │   ├── lib/
+│   │   │   └── supabase.js    # Supabase client instance
 │   │   ├── services/
-│   │   │   └── api.js         # Axios + auth interceptor + 401 redirect
+│   │   │   └── api.js         # Axios + Supabase token interceptor + 401 redirect
 │   │   └── utils/
 │   │       └── dateUtils.js   # Period helpers (month/quarter/semester/year) + getCurrentMonth, MONTHS, PERIODS
 │   ├── package.json
 │   ├── vite.config.js      # Proxy /api -> localhost:8000
 │   ├── tailwind.config.js
-│   └── postcss.config.js
+│   ├── postcss.config.js
+│   └── .env               # VITE_API_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
 │
 ├── PLAN.md
 ├── README.md
@@ -110,7 +116,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 
 | Model | Key Columns | Notes |
 |-------|-----------|-------|
-| **User** | id, email(unique), name, password_hash | M2M households, 1:N personal_expenses, 1:N expenses_paid, 1:N expense_splits |
+| **User** | id, supabase_uid(UUID), email(unique), name, password_hash(nullable) | M2M households, 1:N personal_expenses, 1:N expenses_paid, 1:N expense_splits. `supabase_uid` links to Supabase Auth. `password_hash` is null for Supabase Auth users. |
 | **Household** | id, name, created_by(FK->users) | 1:N expenses (cascade delete), M2M members, M2M categories |
 | **household_members** | user_id, household_id, role("owner"/"member"), joined_at | Association table |
 | **household_categories** | id, household_id, category_id (unique constraint) | Junction table: links custom categories to households for visibility |
@@ -139,11 +145,12 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 ### Auth (`/api/auth`)
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/auth/register` | No | Create user + JWT |
-| POST | `/api/auth/login` | No | Login + JWT |
+| POST | `/api/auth/sync` | Yes | Sync Supabase user to local DB (creates or updates user) |
 | GET | `/api/auth/me` | Yes | Current user profile |
 | PUT | `/api/auth/profile` | Yes | Update name (query param) |
-| PUT | `/api/auth/password` | Yes | Change password |
+| PUT | `/api/auth/password` | Yes | Change password (legacy users only) |
+
+**Note:** Register and Login are handled by Supabase Auth on the frontend. The `/sync` endpoint creates/updates the user in the local database after Supabase authentication.
 
 ### Households (`/api/households`)
 | Method | Path | Auth | Description |
@@ -193,8 +200,11 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 
 | Path | Component | Protected | Status |
 |------|-----------|-----------|--------|
-| `/login` | Login | No | ✅ |
-| `/register` | Register | No | ✅ |
+| `/login` | Login | No | ✅ + "Forgot password" link |
+| `/register` | Register | No | ✅ + email exist detection |
+| `/verify-email` | VerifyEmail | No | ✅ Email verification handler |
+| `/forgot-password` | ForgotPassword | No | ✅ Request password reset |
+| `/reset-password` | ResetPassword | No | ✅ Set new password |
 | `/` | Dashboard | Yes | ✅ Real data |
 | `/personal` | PersonalFinances | Yes | ✅ + debts display |
 | `/household` | Household | Yes | ✅ |
@@ -206,11 +216,13 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 
 ## Key Data Flows
 
-### Auth Flow
-1. Login/Register → POST to API → stores JWT in localStorage
-2. `api.js` interceptor adds `Authorization: Bearer <token>`
-3. `AuthContext.checkAuth()` validates token via `/auth/me`
-4. 401 → clears token → redirects to `/login`
+### Auth Flow (Supabase Auth)
+1. **Register:** Frontend calls `supabase.auth.signUp()` → Supabase sends verification email → User clicks link → Redirected to `/verify-email`
+2. **Login:** Frontend calls `supabase.auth.signInWithPassword()` → Supabase verifies → Returns JWT token
+3. **Sync:** After login/verification, frontend calls `POST /api/auth/sync` → Backend creates/updates user in local DB
+4. **Token:** `api.js` interceptor gets token from Supabase session → Adds `Authorization: Bearer <token>`
+5. **Verify:** Backend verifies JWT using ES256 + JWKS from Supabase → Extracts `sub` (UUID) → Finds user by `supabase_uid`
+6. **Password Reset:** Frontend calls `supabase.auth.resetPasswordForEmail()` → Supabase sends reset email → User clicks link → Redirected to `/reset-password` → Sets new password
 
 ### Share Personal Expense
 1. Select transactions in PersonalFinances (checkboxes)
@@ -235,10 +247,9 @@ The `/personal/expenses` endpoint returns a unified list:
 
 | Schema | Key Fields |
 |--------|------------|
-| UserCreate | email, password, name? |
-| UserLogin | email, password |
+| SyncUserRequest | supabase_uid, email, name? |
 | UserResponse | id, email, name, created_at |
-| Token | access_token, token_type |
+| PasswordChange | current_password, new_password |
 | HouseholdCreate | name |
 | HouseholdResponse | id, name, created_by, members[] |
 | CategoryCreate | name, icon? |
@@ -262,6 +273,10 @@ The `/personal/expenses` endpoint returns a unified list:
 
 **Completed:**
 - Full auth system (register, login, JWT, profile, password change)
+- **Supabase Auth migration:** Email verification, password reset, email exist detection
+- **JWT verification:** ES256 with JWKS (replaces HS256)
+- **New pages:** VerifyEmail, ForgotPassword, ResetPassword
+- **Auth flow:** Supabase Auth → sync to local DB → JWT verification
 - Household CRUD + invite members
 - Personal finances CRUD (income/expense)
 - Share expenses to household with split config
@@ -307,26 +322,29 @@ The `/personal/expenses` endpoint returns a unified list:
 
 1. **No services layer** — Business logic in router files
 2. **No migrations** — Tables auto-created on startup (not production-ready)
-3. **No refresh tokens** — 30-day JWT expiry, then re-login
-4. **No pagination** — All endpoints return everything
-5. **No expense updates** — Create/delete only
-6. **Profile update uses query param** — `PUT /api/auth/profile?name=foo`
-7. **Default categories** — 7 Spanish categories, global (created once at startup), visible to all users
-8. **Custom category visibility** — `household_categories` junction table links custom categories to households. Auto-linked when sharing expenses.
-9. **Reports category filter** — `by_category` in summary only shows categories the user can access (default + household-linked). Custom categories not associated with user's households are excluded.
-10. **Tailwind v4** — `@import "tailwindcss"` not `@tailwind`
-11. **Vite proxy** — `/api` → `localhost:8000`
-12. **DateFilter** — Returns `{ start_date, end_date, month, year }`
-13. **my_share field** — Proportional part for shared expenses
-14. **is_debt/is_paid fields** — Track debts from and to others
-15. **Debts in summary** — Total includes unpaid debts from others (with category visibility)
-16. **Protected actions** — Cannot delete/unshare others' expenses. Cannot unshare/delete fully paid shared expenses.
-17. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
-18. **Emoji suggestions** — Panel shows on input focus, closes on click outside
-19. **is_fully_paid** — Computed in GET /personal/expenses: checks if all non-payer splits are paid
-20. **FAB button** — Dynamic: + (green) when no selection, house icon (gray) when items selected for sharing
-21. **Debts in reports** — Include paid and unpaid debts (removed paid==False filter from summary/monthly)
-22. **Color scheme:**
+3. **No pagination** — All endpoints return everything
+4. **No expense updates** — Create/delete only
+5. **Profile update uses query param** — `PUT /api/auth/profile?name=foo`
+6. **Default categories** — 7 Spanish categories, global (created once at startup), visible to all users
+7. **Custom category visibility** — `household_categories` junction table links custom categories to households. Auto-linked when sharing expenses.
+8. **Reports category filter** — `by_category` in summary only shows categories the user can access (default + household-linked). Custom categories not associated with user's households are excluded.
+9. **Tailwind v4** — `@import "tailwindcss"` not `@tailwind`
+10. **Vite proxy** — `/api` → `localhost:8000`
+11. **DateFilter** — Returns `{ start_date, end_date, month, year }`
+12. **my_share field** — Proportional part for shared expenses
+13. **is_debt/is_paid fields** — Track debts from and to others
+14. **Debts in summary** — Total includes unpaid debts from others (with category visibility)
+15. **Protected actions** — Cannot delete/unshare others' expenses. Cannot unshare/delete fully paid shared expenses.
+16. **Settings sidebar** — Sidebar navigation with Perfil + Categorías tabs
+17. **Emoji suggestions** — Panel shows on input focus, closes on click outside
+18. **is_fully_paid** — Computed in GET /personal/expenses: checks if all non-payer splits are paid
+19. **FAB button** — Dynamic: + (green) when no selection, house icon (gray) when items selected for sharing
+20. **Debts in reports** — Include paid and unpaid debts (removed paid==False filter from summary/monthly)
+21. **Supabase Auth** — Register/login handled by Supabase, not backend. Backend verifies JWT with ES256 + JWKS.
+22. **Email verification** — Supabase sends verification email automatically. Redirect URL must be configured in Supabase Dashboard.
+23. **Password reset** — Handled by Supabase. User clicks link in email → redirected to `/reset-password`.
+24. **Email exist detection** — Supabase doesn't return error for existing emails (security). Check `user.identities.length === 0` to detect.
+25. **Color scheme:**
      - Ingreso: 🟢 green
      - Gasto: 🔴 red
      - Shared by me: 🔴 red + "(€X compartido)"
@@ -359,7 +377,9 @@ fa90916 Feat: Gastos compartidos muestran parte proporcional + Fix selector año
 
 | Function | Backend | Frontend |
 |----------|---------|----------|
-| Auth | auth.py | AuthContext.jsx, Login.jsx, Register.jsx |
+| Auth | auth.py, utils/auth.py | AuthContext.jsx, Login.jsx, Register.jsx, lib/supabase.js |
+| Email Verification | — | VerifyEmail.jsx |
+| Password Reset | — | ForgotPassword.jsx, ResetPassword.jsx |
 | Households | households.py | Household.jsx, HouseholdDetail.jsx, CreateHouseholdModal.jsx, InviteMemberModal.jsx |
 | Personal | personal.py | PersonalFinances.jsx |
 | Shared Expenses | expenses.py | ShareToHouseholdModal.jsx, HouseholdDetail.jsx |

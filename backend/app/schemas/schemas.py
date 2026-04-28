@@ -35,6 +35,12 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
+class SyncUserRequest(BaseModel):
+    supabase_uid: str
+    email: EmailStr
+    name: Optional[str] = None
+
+
 # Household schemas
 class HouseholdCreate(BaseModel):
     name: str

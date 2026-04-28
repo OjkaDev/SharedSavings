@@ -1,50 +1,50 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from uuid import UUID
 from app.models.database import get_db, User
-from app.schemas.schemas import UserCreate, UserLogin, UserResponse, Token, PasswordChange
+from app.schemas.schemas import UserResponse, Token, PasswordChange, SyncUserRequest
 from app.utils.auth import (
-    get_password_hash,
     verify_password,
-    create_access_token,
+    get_password_hash,
     get_current_user,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=Token)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+@router.post("/sync", response_model=UserResponse)
+def sync_user(user_data: SyncUserRequest, db: Session = Depends(get_db)):
+    """Sync user from Supabase Auth to local database."""
+    # Check if user already exists by supabase_uid
+    existing_user = db.query(User).filter(User.supabase_uid == user_data.supabase_uid).first()
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+        # Update user info if needed
+        existing_user.email = user_data.email
+        existing_user.name = user_data.name
+        db.commit()
+        db.refresh(existing_user)
+        return existing_user
 
+    # Check if email already exists (legacy user)
+    email_user = db.query(User).filter(User.email == user_data.email).first()
+    if email_user:
+        # Link supabase_uid to existing user
+        email_user.supabase_uid = user_data.supabase_uid
+        email_user.name = user_data.name
+        db.commit()
+        db.refresh(email_user)
+        return email_user
+
+    # Create new user
     user = User(
+        supabase_uid=user_data.supabase_uid,
         email=user_data.email,
         name=user_data.name,
-        password_hash=get_password_hash(user_data.password),
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@router.post("/login", response_model=Token)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_data.email).first()
-    if not user or not verify_password(user_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return user
 
 
 @router.get("/me", response_model=UserResponse)
@@ -70,6 +70,12 @@ def change_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not current_user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password change not available for Supabase Auth users. Use Supabase password reset.",
+        )
+
     if not verify_password(password_data.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
