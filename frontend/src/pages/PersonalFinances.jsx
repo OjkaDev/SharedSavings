@@ -400,7 +400,7 @@ export default function PersonalFinances() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-2">
-                    Descripción <span className="text-dark-500">(opcional)</span>
+                    Descripción
                   </label>
                   <input
                     type="text"
@@ -411,6 +411,7 @@ export default function PersonalFinances() {
                     className="input-field"
                     placeholder="Ej: Supermercado"
                     maxLength={50}
+                    required
                   />
                 </div>
                 <div>

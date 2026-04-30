@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
-import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { MONTHS } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
@@ -25,9 +25,30 @@ export default function Dashboard() {
     sharedPending: 0,
     households: 0,
   })
+  const [households, setHouseholds] = useState([])
+  const [quickAccessIds, setQuickAccessIds] = useState(() => {
+    const saved = localStorage.getItem('quickAccessHouseholds')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [showHouseholdDropdown, setShowHouseholdDropdown] = useState(false)
+  const dropdownRef = useRef(null)
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('quickAccessHouseholds', JSON.stringify(quickAccessIds))
+  }, [quickAccessIds])
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowHouseholdDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const fetchData = async () => {
@@ -49,6 +70,7 @@ export default function Dashboard() {
         sharedPending: sharedRes.data.pending || 0,
         households: householdsRes.data.length || 0,
       })
+      setHouseholds(householdsRes.data)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -66,7 +88,7 @@ export default function Dashboard() {
 
   const stats = [
     { 
-      name: 'Viviendas', 
+      name: 'Grupos', 
       value: summary.households, 
       icon: HomeIcon, 
       gradient: 'from-cyan-400 to-blue-500'
@@ -126,6 +148,20 @@ export default function Dashboard() {
     },
     cutout: '65%',
   }
+
+  const addQuickAccess = (householdId) => {
+    if (quickAccessIds.length < 3 && !quickAccessIds.includes(householdId)) {
+      setQuickAccessIds([...quickAccessIds, householdId])
+    }
+    setShowHouseholdDropdown(false)
+  }
+
+  const removeQuickAccess = (householdId) => {
+    setQuickAccessIds(quickAccessIds.filter(id => id !== householdId))
+  }
+
+  const quickAccessHouseholds = households.filter(h => quickAccessIds.includes(h.id))
+  const availableHouseholds = households.filter(h => !quickAccessIds.includes(h.id))
 
   const financeMetrics = [
     {
@@ -213,13 +249,62 @@ export default function Dashboard() {
               <p className="text-dark-100 font-medium text-sm md:text-base">Nuevo Gasto</p>
               <p className="text-dark-500 text-xs mt-1">Registra un gasto</p>
             </Link>
-            <Link to="/household" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 md:mb-3">
-                <HomeIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            {quickAccessHouseholds.map((household) => (
+              <div key={household.id} className="relative flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+                <button
+                  onClick={() => removeQuickAccess(household.id)}
+                  className="absolute top-2 right-2 p-1 rounded-full bg-dark-700 hover:bg-red-500/20 text-dark-400 hover:text-red-400 transition"
+                  title="Quitar de accesos rápidos"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+                <Link to={`/household/${household.id}`} className="flex flex-col items-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 md:mb-3">
+                    <HomeIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                  </div>
+                  <p className="text-dark-100 font-medium text-sm md:text-base truncate max-w-full">{household.name}</p>
+                  <p className="text-dark-500 text-xs mt-1">{household.members?.length || 0} miembros</p>
+                </Link>
               </div>
-              <p className="text-dark-100 font-medium text-sm md:text-base">Mi Vivienda</p>
-              <p className="text-dark-500 text-xs mt-1">Administra tu hogar</p>
-            </Link>
+            ))}
+            {quickAccessIds.length < 3 && availableHouseholds.length > 0 && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowHouseholdDropdown(!showHouseholdDropdown)}
+                  className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dashed border-dark-600 hover:border-primary-500/30 transition-all group text-center w-full"
+                >
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-dark-700 flex items-center justify-center mb-2 md:mb-3">
+                    <PlusIcon className="h-5 w-5 md:h-6 md:w-6 text-dark-400" />
+                  </div>
+                  <p className="text-dark-400 font-medium text-sm md:text-base">Añadir Grupo</p>
+                  <p className="text-dark-500 text-xs mt-1">{availableHouseholds.length} disponibles</p>
+                </button>
+                {showHouseholdDropdown && (
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-10 overflow-hidden">
+                    <div className="p-2 border-b border-dark-700">
+                      <p className="text-xs text-dark-400 font-medium">Selecciona un grupo</p>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {availableHouseholds.map((household) => (
+                        <button
+                          key={household.id}
+                          onClick={() => addQuickAccess(household.id)}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-dark-700 transition text-left"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center flex-shrink-0">
+                            <HomeIcon className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-dark-100 text-sm font-medium truncate">{household.name}</p>
+                            <p className="text-dark-500 text-xs">{household.members?.length || 0} miembros</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <Link to="/reports" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mb-2 md:mb-3">
                 <DocumentChartBarIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />

@@ -36,14 +36,14 @@ export default function Household() {
   }
 
   const deleteHousehold = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta vivienda?')) return
+    if (!confirm('¿Estás seguro de eliminar este grupo?')) return
 
     try {
       await api.delete(`/households/${id}`)
       setHouseholds(households.filter((h) => h.id !== id))
     } catch (error) {
       console.error('Error deleting household:', error)
-      alert('Error al eliminar la vivienda')
+      alert('Error al eliminar el grupo')
     }
   }
 
@@ -70,9 +70,9 @@ export default function Household() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="heading">Viviendas</h1>
+          <h1 className="heading">Grupos</h1>
           <p className="subheading mt-1">
-            Gestiona tus viviendas y miembros
+            Gestiona tus grupos y miembros
           </p>
         </div>
         <button
@@ -80,7 +80,7 @@ export default function Household() {
           className="btn-primary inline-flex items-center"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Nueva Vivienda
+          Nuevo Grupo
         </button>
       </div>
 
@@ -88,17 +88,17 @@ export default function Household() {
         <div className="card text-center py-12">
           <HomeIcon className="h-16 w-16 text-dark-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-dark-100 mb-2">
-            No tienes viviendas
+            No tienes grupos
           </h3>
           <p className="text-dark-400 mb-6">
-            Crea tu primera vivienda para empezar a compartir gastos
+            Crea tu primer grupo para empezar a compartir gastos
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary inline-flex items-center"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
-            Crear Vivienda
+            Crear Grupo
           </button>
         </div>
       ) : (
