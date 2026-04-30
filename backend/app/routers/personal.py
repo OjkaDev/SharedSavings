@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract, or_
 from typing import List, Optional
@@ -6,52 +6,41 @@ from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members, household_categories
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData, TopExpense
 from app.utils.auth import get_current_user
+from app.utils.helpers import get_shared_expense_info, apply_date_filters
 
 router = APIRouter(prefix="/personal", tags=["Personal Expenses"])
 
 
 @router.get("/expenses")
 def get_personal_expenses(
-    type: str = None,
+    expense_type: str = None,
     category_id: int = None,
     start_date: datetime = None,
     end_date: datetime = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from app.models.database import Category
-    
     query = db.query(PersonalExpense).filter(
         PersonalExpense.user_id == current_user.id
     ).options(joinedload(PersonalExpense.category))
 
-    if type:
-        query = query.filter(PersonalExpense.type == type)
+    if expense_type:
+        query = query.filter(PersonalExpense.type == expense_type)
     if category_id:
         query = query.filter(PersonalExpense.category_id == category_id)
-    if start_date:
-        query = query.filter(PersonalExpense.date >= start_date)
-    if end_date:
-        query = query.filter(PersonalExpense.date <= end_date)
+    query = apply_date_filters(query, PersonalExpense, start_date, end_date)
 
     expenses = query.order_by(PersonalExpense.date.desc()).all()
     
     result = []
     for exp in expenses:
-        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
+        shared, split = get_shared_expense_info(db, exp.id, current_user.id)
         shared_expense_id = shared.id if shared else None
         
-        my_share = None
-        is_shared_by_me = False
+        my_share = split.amount if split else None
+        is_shared_by_me = shared is not None
         is_fully_paid = False
         if shared_expense_id:
-            split = db.query(ExpenseSplit).filter(
-                ExpenseSplit.expense_id == shared_expense_id,
-                ExpenseSplit.user_id == current_user.id,
-            ).first()
-            my_share = split.amount if split else None
-            is_shared_by_me = True
-            # Verificar si todos los splits (excepto pagador) están pagados
             other_splits = db.query(ExpenseSplit).filter(
                 ExpenseSplit.expense_id == shared_expense_id,
                 ExpenseSplit.user_id != current_user.id,
@@ -129,11 +118,7 @@ def get_personal_summary(
     query = db.query(PersonalExpense).filter(
         PersonalExpense.user_id == current_user.id
     )
-
-    if start_date:
-        query = query.filter(PersonalExpense.date >= start_date)
-    if end_date:
-        query = query.filter(PersonalExpense.date <= end_date)
+    query = apply_date_filters(query, PersonalExpense, start_date, end_date)
 
     income = (
         query.filter(PersonalExpense.type == "income")
@@ -147,29 +132,16 @@ def get_personal_summary(
     
     personal_only_expenses = 0.0
     for exp in all_expenses:
-        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
-        if shared:
-            split = db.query(ExpenseSplit).filter(
-                ExpenseSplit.expense_id == shared.id,
-                ExpenseSplit.user_id == current_user.id,
-            ).first()
-            if split:
-                personal_only_expenses += split.amount
-        else:
+        shared, split = get_shared_expense_info(db, exp.id, current_user.id)
+        if split:
+            personal_only_expenses += split.amount
+        elif not shared:
             personal_only_expenses += exp.amount
 
-    category_totals = []
     by_category_dict = {}
     for exp in all_expenses:
-        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
-        if shared:
-            split = db.query(ExpenseSplit).filter(
-                ExpenseSplit.expense_id == shared.id,
-                ExpenseSplit.user_id == current_user.id,
-            ).first()
-            amount = split.amount if split else 0
-        else:
-            amount = exp.amount
+        shared, split = get_shared_expense_info(db, exp.id, current_user.id)
+        amount = split.amount if split else (0 if shared else exp.amount)
         
         cat_name = exp.category.name if exp.category else "Sin categoría"
         by_category_dict[cat_name] = by_category_dict.get(cat_name, 0) + amount
@@ -198,10 +170,7 @@ def get_personal_summary(
             ),
         )
     )
-    if start_date:
-        debt_cat_query = debt_cat_query.filter(Expense.date >= start_date)
-    if end_date:
-        debt_cat_query = debt_cat_query.filter(Expense.date <= end_date)
+    debt_cat_query = apply_date_filters(debt_cat_query, Expense, start_date, end_date)
 
     for cat_name, total in debt_cat_query.group_by(Category.name).all():
         name = cat_name or "Sin categoría"
@@ -210,18 +179,15 @@ def get_personal_summary(
     by_category = [{"name": name, "total": float(total)} for name, total in by_category_dict.items()]
 
     # Agregar deudas (pagadas y no pagadas) al total de gastos, filtradas por fecha
-    debt_total_query = (
+    debt_total_query = apply_date_filters(
         db.query(func.sum(ExpenseSplit.amount))
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .filter(
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
-        )
+        ),
+        Expense, start_date, end_date,
     )
-    if start_date:
-        debt_total_query = debt_total_query.filter(Expense.date >= start_date)
-    if end_date:
-        debt_total_query = debt_total_query.filter(Expense.date <= end_date)
     debt_total = debt_total_query.scalar() or 0
     total_expenses_with_debts = float(personal_only_expenses) + float(debt_total)
 
@@ -312,29 +278,19 @@ def get_top_expenses(
     results = []
 
     # Gastos personales
-    personal_query = (
+    personal_query = apply_date_filters(
         db.query(PersonalExpense)
         .options(joinedload(PersonalExpense.category))
         .filter(
             PersonalExpense.user_id == current_user.id,
             PersonalExpense.type == "expense",
-        )
+        ),
+        PersonalExpense, start_date, end_date,
     )
-    if start_date:
-        personal_query = personal_query.filter(PersonalExpense.date >= start_date)
-    if end_date:
-        personal_query = personal_query.filter(PersonalExpense.date <= end_date)
 
     for exp in personal_query.all():
-        shared = db.query(Expense).filter(Expense.personal_expense_id == exp.id).first()
-        if shared:
-            split = db.query(ExpenseSplit).filter(
-                ExpenseSplit.expense_id == shared.id,
-                ExpenseSplit.user_id == current_user.id,
-            ).first()
-            amount = split.amount if split else exp.amount
-        else:
-            amount = exp.amount
+        shared, split = get_shared_expense_info(db, exp.id, current_user.id)
+        amount = split.amount if split else exp.amount
 
         results.append({
             "description": exp.description or "Sin descripción",
@@ -345,7 +301,7 @@ def get_top_expenses(
         })
 
     # Deudas de otros
-    debt_query = (
+    debt_query = apply_date_filters(
         db.query(ExpenseSplit, Expense, Category)
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .join(Category, Expense.category_id == Category.id, isouter=True)
@@ -355,12 +311,9 @@ def get_top_expenses(
             ExpenseSplit.user_id == current_user.id,
             Expense.paid_by != current_user.id,
             ExpenseSplit.paid == False,
-        )
+        ),
+        Expense, start_date, end_date,
     )
-    if start_date:
-        debt_query = debt_query.filter(Expense.date >= start_date)
-    if end_date:
-        debt_query = debt_query.filter(Expense.date <= end_date)
 
     for split, expense, category in debt_query.all():
         results.append({

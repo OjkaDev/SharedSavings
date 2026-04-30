@@ -141,7 +141,7 @@ Proyecto-Cuenta/
 - [x] Revisar en reports.jsx los gráficos a poner. (4 gráficos: Ingresos vs Gastos, Gastos por categoría, Personales vs Compartidos, Top Gastos + filtro de periodo)
 - [x] Cambio en Settings.jsx, interfaz lateral (sidebar + tabs móvil)
 - [x] Modificación de categorías y mejoras en Settings.jsx
-- [ ] Mejorar login y registro (Correo confirmación?)
+- [x] Mejorar login y registro (Correo confirmación?)
 - [ ] Revision BBDD y problemas de seguridad.
 - [x] Gastos compartidos deben contar para el usuario solo la parte proporcional.
 - [x] Mejora filtros en PersonalFinances.jsx y HouseholdDetail.jsx.

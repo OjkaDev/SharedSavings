@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
 import DateFilter from '../components/DateFilter'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
 import {
   PlusIcon,
   ArrowUpIcon,
   ArrowDownIcon,
-  ShareIcon,
   TrashIcon,
   HomeIcon,
 } from '@heroicons/react/24/outline'
@@ -138,11 +138,7 @@ export default function PersonalFinances() {
   )
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import LoadingSpinner from '../components/LoadingSpinner'
 import {
   PlusIcon,
   TagIcon,
@@ -29,8 +30,6 @@ const TABS = [
 
 export default function Settings() {
   const { user } = useAuth()
-  const [households, setHouseholds] = useState([])
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState('')
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -53,12 +52,8 @@ export default function Settings() {
   const emojiPanelRef = useRef(null)
 
   useEffect(() => {
-    fetchHouseholds()
-    setProfileName(user?.name || '')
-  }, [])
-
-  useEffect(() => {
     fetchCategories()
+    setProfileName(user?.name || '')
   }, [])
 
   useEffect(() => {
@@ -71,23 +66,14 @@ export default function Settings() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const fetchHouseholds = async () => {
-    try {
-      const res = await api.get('/households')
-      setHouseholds(res.data)
-    } catch (error) {
-      console.error('Error fetching households:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const fetchCategories = async () => {
     try {
       const res = await api.get('/categories')
       setCategories(res.data)
     } catch (error) {
       console.error('Error fetching categories:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -175,11 +161,7 @@ export default function Settings() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   const renderTabContent = () => {

@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { MONTHS } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange, MONTHS } from '../utils/dateUtils'
+import LoadingSpinner from '../components/LoadingSpinner'
+import StatCard from '../components/StatCard'
 import {
   Chart as ChartJS,
   ArcElement,
@@ -53,13 +55,12 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      const { month, year } = getCurrentMonth()
+      const { start_date, end_date } = getMonthRange(month, year)
 
       const [personalRes, sharedRes, householdsRes] = await Promise.all([
-        api.get('/personal/summary', { params: { start_date: startOfMonth, end_date: endOfMonth } }),
-        api.get('/expenses/summary', { params: { start_date: startOfMonth, end_date: endOfMonth } }),
+        api.get('/personal/summary', { params: { start_date, end_date } }),
+        api.get('/expenses/summary', { params: { start_date, end_date } }),
         api.get('/households'),
       ])
 
@@ -79,11 +80,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   const stats = [
@@ -195,16 +192,14 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {stats.map((stat) => (
-          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
-            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
-            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
-              </div>
-              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
-            </div>
-            <p className="text-dark-500 text-xs">Total de {monthName}</p>
-          </div>
+          <StatCard
+            key={stat.name}
+            name={stat.name}
+            value={stat.value}
+            icon={stat.icon}
+            gradient={stat.gradient}
+            subtitle={`Total de ${monthName}`}
+          />
         ))}
       </div>
 

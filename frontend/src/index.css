@@ -26,8 +26,6 @@
   
   --color-surface: #1e1e32;
   --color-surface-hover: #252542;
-  --color-surface-active: #2d2d50;
-  --color-border: #3d3d5c;
 }
 
 @keyframes slideIn {
@@ -60,10 +58,6 @@ body {
 
 @utility btn-secondary {
   @apply bg-dark-700 hover:bg-dark-600 text-dark-100 font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 cursor-pointer border border-dark-600;
-}
-
-@utility btn-danger {
-  @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-200 cursor-pointer;
 }
 
 @utility input-field {

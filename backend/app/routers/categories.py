@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List
-from app.models.database import get_db, User, Category, household_members, household_categories
+from app.models.database import get_db, User, Category, household_categories
 from app.schemas.schemas import CategoryCreate, CategoryResponse
 from app.utils.auth import get_current_user
 

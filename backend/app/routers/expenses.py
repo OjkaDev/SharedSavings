@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List, Optional
@@ -6,6 +6,7 @@ from datetime import datetime
 from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, household_categories, PersonalExpense
 from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse, MonthlySharedData
 from app.utils.auth import get_current_user
+from app.utils.helpers import get_household_or_403, create_expense_splits, apply_date_filters
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -29,10 +30,7 @@ def get_expenses(
         query = query.filter(Expense.household_id == household_id)
     if category_id:
         query = query.filter(Expense.category_id == category_id)
-    if start_date:
-        query = query.filter(Expense.date >= start_date)
-    if end_date:
-        query = query.filter(Expense.date <= end_date)
+    query = apply_date_filters(query, Expense, start_date, end_date)
 
     return query.order_by(Expense.date.desc()).all()
 
@@ -49,14 +47,13 @@ def get_expense_summary(
     if not household_ids:
         return ExpenseSummary(total=0, pending=0, by_category=[])
 
-    total_query = db.query(func.sum(Expense.amount)).filter(Expense.household_id.in_(household_ids))
-    if start_date:
-        total_query = total_query.filter(Expense.date >= start_date)
-    if end_date:
-        total_query = total_query.filter(Expense.date <= end_date)
+    total_query = apply_date_filters(
+        db.query(func.sum(Expense.amount)).filter(Expense.household_id.in_(household_ids)),
+        Expense, start_date, end_date,
+    )
     total = total_query.scalar() or 0
 
-    pending_query = (
+    pending_query = apply_date_filters(
         db.query(func.sum(ExpenseSplit.amount))
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .filter(
@@ -64,23 +61,17 @@ def get_expense_summary(
             ExpenseSplit.user_id == current_user.id,
             ExpenseSplit.paid == False,
             Expense.paid_by != current_user.id,
-        )
+        ),
+        Expense, start_date, end_date,
     )
-    if start_date:
-        pending_query = pending_query.filter(Expense.date >= start_date)
-    if end_date:
-        pending_query = pending_query.filter(Expense.date <= end_date)
     pending = pending_query.scalar() or 0
 
-    category_query = (
+    category_query = apply_date_filters(
         db.query(Category.name, func.sum(Expense.amount))
         .join(Expense, Expense.category_id == Category.id)
-        .filter(Expense.household_id.in_(household_ids))
+        .filter(Expense.household_id.in_(household_ids)),
+        Expense, start_date, end_date,
     )
-    if start_date:
-        category_query = category_query.filter(Expense.date >= start_date)
-    if end_date:
-        category_query = category_query.filter(Expense.date <= end_date)
     category_totals = category_query.group_by(Category.name).all()
 
     by_category = [{"name": name, "total": total} for name, total in category_totals]
@@ -128,28 +119,10 @@ def create_expense(
         .all()
     )
 
-    if expense_data.split_type == "equal":
-        split_amount = expense_data.amount / len(members)
-        for member in members:
-            split = ExpenseSplit(
-                expense_id=expense.id,
-                user_id=member.id,
-                amount=split_amount,
-                percentage=100 / len(members),
-                paid=(member.id == current_user.id),
-            )
-            db.add(split)
-    elif expense_data.split_type == "percentage" and expense_data.splits:
-        for split_data in expense_data.splits:
-            amount = (expense_data.amount * split_data.percentage) / 100
-            split = ExpenseSplit(
-                expense_id=expense.id,
-                user_id=split_data.user_id,
-                amount=amount,
-                percentage=split_data.percentage,
-                paid=(split_data.user_id == current_user.id),
-            )
-            db.add(split)
+    create_expense_splits(
+        db, expense.id, expense_data.amount,
+        expense_data.split_type, expense_data.splits, members, current_user.id,
+    )
 
     db.commit()
     db.refresh(expense)
@@ -270,28 +243,10 @@ def share_expenses_to_household(
         db.flush()
 
         # Crear los splits
-        if expense_item.split_type == "equal":
-            split_amount = personal_expense.amount / len(members)
-            for member in members:
-                split = ExpenseSplit(
-                    expense_id=expense.id,
-                    user_id=member.id,
-                    amount=split_amount,
-                    percentage=100 / len(members),
-                    paid=(member.id == current_user.id),
-                )
-                db.add(split)
-        elif expense_item.split_type == "percentage" and expense_item.splits:
-            for split_data in expense_item.splits:
-                amount = (personal_expense.amount * split_data.percentage) / 100
-                split = ExpenseSplit(
-                    expense_id=expense.id,
-                    user_id=split_data.user_id,
-                    amount=amount,
-                    percentage=split_data.percentage,
-                    paid=(split_data.user_id == current_user.id),
-                )
-                db.add(split)
+        create_expense_splits(
+            db, expense.id, personal_expense.amount,
+            expense_item.split_type, expense_item.splits, members, current_user.id,
+        )
 
         shared_count += 1
         total_amount += personal_expense.amount

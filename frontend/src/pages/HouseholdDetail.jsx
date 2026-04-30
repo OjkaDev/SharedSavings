@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import DateFilter from '../components/DateFilter'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
 import {
   ArrowLeftIcon,
@@ -49,7 +50,7 @@ export default function HouseholdDetail() {
 
     setPayingAll(true)
     try {
-      await api.put(`/households/${id}/pay-all`)
+      await api.put(`/households/${id}/pay`)
       await fetchData()
     } catch (error) {
       console.error('Error paying all:', error)
@@ -73,7 +74,7 @@ export default function HouseholdDetail() {
   const handlePayMember = async (memberId) => {
     if (!confirm('¿Marcar deuda como pagada?')) return
     try {
-      await api.put(`/households/${id}/pay-member`, { user_id: memberId })
+      await api.put(`/households/${id}/pay`, { user_id: memberId })
       await fetchData()
     } catch (error) {
       console.error('Error paying member:', error)
@@ -82,11 +83,7 @@ export default function HouseholdDetail() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (!household) {
