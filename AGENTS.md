@@ -40,20 +40,21 @@ Proyecto-Cuenta/
 │   │   │   └── database.py  # 7 SQLAlchemy tables + SessionLocal + get_db()
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
-│   │   │   └── schemas.py   # All Pydantic request/response schemas
+│   │   │   └── schemas.py   # Pydantic request/response schemas
 │   │   ├── routers/
 │   │   │   ├── __init__.py
-│   │   │   ├── auth.py      # POST /register, /login; GET /me; PUT /profile, /password
-│   │   │   ├── households.py  # CRUD + invite + debts + pay-all + pay-member
+│   │   │   ├── auth.py      # Sync Supabase user; GET /me; PUT /profile, /password
+│   │   │   ├── households.py  # CRUD + invite + debts + pay
 │   │   │   ├── expenses.py    # CRUD + summary + share/unshare + monthly
 │   │   │   ├── personal.py    # CRUD personal expenses + summary + monthly + debts
 │   │   │   └── categories.py  # CRUD (default categories protected)
 │   │   ├── services/        # EMPTY — business logic in routers
 │   │   └── utils/
 │   │       ├── __init__.py
-│   │       └── auth.py      # JWT verify (ES256 with JWKS) + get_current_user
+│   │       ├── auth.py      # JWT verify (ES256 with JWKS) + get_current_user
+│   │       └── helpers.py   # Reusable: get_household_or_403, create_expense_splits, get_shared_expense_info, apply_date_filters
 │   ├── requirements.txt
-│   └── .env               # SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET, SECRET_KEY, DATABASE_URL
+│   └── .env               # SUPABASE_URL, SECRET_KEY, DATABASE_URL
 │
 ├── frontend/
 │   ├── src/
@@ -67,15 +68,18 @@ Proyecto-Cuenta/
 │   │   │   ├── HouseholdCard.jsx
 │   │   │   ├── InviteMemberModal.jsx
 │   │   │   ├── ShareToHouseholdModal.jsx  # 2-step: pick household, configure splits
-│   │   │   └── DateFilter.jsx         # Shared month/year filter
+│   │   │   ├── DateFilter.jsx         # Shared month/year filter
+│   │   │   ├── LoadingSpinner.jsx     # Reusable loading spinner
+│   │   │   ├── StatCard.jsx           # Reusable stat card with icon + gradient
+│   │   │   └── Modal.jsx              # Base modal with title + close button
 │   │   ├── pages/
 │   │   │   ├── Login.jsx           # Login form + "Forgot password" link
 │   │   │   ├── Register.jsx       # Registration + email exist detection
 │   │   │   ├── VerifyEmail.jsx    # Email verification handler
 │   │   │   ├── ForgotPassword.jsx # Request password reset
 │   │   │   ├── ResetPassword.jsx  # Set new password after reset
-│   │   │   ├── Dashboard.jsx     # Stats with real data
-│   │   │   ├── Household.jsx      # List/create/delete households
+│   │   │   ├── Dashboard.jsx     # Stats + financial summary + quick access to groups
+│   │   │   ├── Household.jsx      # List/create/delete grupos
 │   │   │   ├── HouseholdDetail.jsx # Stats Dashboard style + debts + shared expenses with status
 │   │   │   ├── PersonalFinances.jsx # CRUD + share to household + FAB + period filter
 │   │   │   ├── Settings.jsx        # Profile, password, categories
@@ -161,7 +165,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | DELETE | `/api/households/{id}` | Yes | Delete (creator only) |
 | POST | `/api/households/{id}/invite` | Yes | Invite by email |
 | GET | `/api/households/{id}/debts` | Yes | Debt summary |
-| PUT | `/api/households/{id}/pay-all` | Yes | Mark all unpaid as paid |
+| PUT | `/api/households/{id}/pay` | Yes | Mark debts as paid (optional: `?user_id=X` for specific member) |
 
 ### Expenses (`/api/expenses`)
 | Method | Path | Auth | Description |
@@ -320,7 +324,7 @@ The `/personal/expenses` endpoint returns a unified list:
 
 ## Gotchas & Design Notes
 
-1. **No services layer** — Business logic in router files
+1. **Helpers layer** — `utils/helpers.py` contains reusable functions: `get_household_or_403`, `create_expense_splits`, `get_shared_expense_info`, `apply_date_filters`
 2. **No migrations** — Tables auto-created on startup (not production-ready)
 3. **No pagination** — All endpoints return everything
 4. **No expense updates** — Create/delete only
@@ -344,7 +348,11 @@ The `/personal/expenses` endpoint returns a unified list:
 22. **Email verification** — Supabase sends verification email automatically. Redirect URL must be configured in Supabase Dashboard.
 23. **Password reset** — Handled by Supabase. User clicks link in email → redirected to `/reset-password`.
 24. **Email exist detection** — Supabase doesn't return error for existing emails (security). Check `user.identities.length === 0` to detect.
-25. **Color scheme:**
+25. **Dashboard quick access** — User can pin up to 3 grupos for quick access (stored in localStorage)
+26. **Terminology** — "Vivienda" renamed to "Grupo" throughout the app (navbar, pages, dialogs)
+27. **Pay endpoint unified** — `PUT /{id}/pay` with optional `?user_id=X` replaces separate pay-all and pay-member endpoints
+28. **Reusable components** — `LoadingSpinner`, `StatCard`, `Modal` available for consistent UI
+29. **Color scheme:**
      - Ingreso: 🟢 green
      - Gasto: 🔴 red
      - Shared by me: 🔴 red + "(€X compartido)"
@@ -356,6 +364,17 @@ The `/personal/expenses` endpoint returns a unified list:
 
 ## Recent Commits
 
+```
+44fe2f2 Refactor: Eliminar código muerto, extraer helpers y crear componentes reutilizables
+ff3659d Feat: Cambiar Vivienda a Grupo + accesos rápidos personalizados en Dashboard
+a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter
+8b1eda9 Docs: Update AGENTS.md with Reports redesign, household_categories, and category visibility rules
+6550805 Feat: Associate custom categories to households via junction table for shared expense visibility
+de44aa1 Feat: Include shared expense debts in reports by category and monthly breakdown
+83936ba Feat: Redesign Reports page to match Dashboard style with dark theme and mobile responsive
+e088a51 Feat: Redesign categories - global defaults + Settings sidebar + emoji panel
+b45ce2b Feat: Incluir deudas en summary + proteger acciones de gastos de otros
+92c5f5b Feat: Mostrar estado de pago en deudas - naranja (debes), púrpura (te deber), rojo (pagado)
 ```
 a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter
 8b1eda9 Docs: Update AGENTS.md with Reports redesign, household_categories, and category visibility rules
@@ -387,5 +406,7 @@ fa90916 Feat: Gastos compartidos muestran parte proporcional + Fix selector año
 | Reports | expenses.py, personal.py | Reports.jsx |
 | Dashboard | personal.py, households.py | Dashboard.jsx |
 | Date Filter | — | DateFilter.jsx |
+| Helpers | utils/helpers.py | — |
+| UI Components | — | LoadingSpinner.jsx, StatCard.jsx, Modal.jsx |
 
 ---
