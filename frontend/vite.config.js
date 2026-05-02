@@ -9,6 +9,16 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            if (proxyRes.headers['location']) {
+              proxyRes.headers['location'] = proxyRes.headers['location'].replace(
+                'http://localhost:8000',
+                ''
+              )
+            }
+          })
+        },
       },
     },
   },
