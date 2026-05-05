@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -31,6 +32,7 @@ const TABS = [
 
 export default function Settings() {
   const { user, updatePassword: changePassword } = useAuth()
+  const [searchParams] = useSearchParams()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -48,7 +50,10 @@ export default function Settings() {
   const [profileMsg, setProfileMsg] = useState('')
   const [passwordMsg, setPasswordMsg] = useState('')
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('Alimentación')
-  const [activeTab, setActiveTab] = useState('perfil')
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab')
+    return TABS.some(t => t.id === tab) ? tab : 'perfil'
+  })
   const [categoryMsg, setCategoryMsg] = useState('')
   const [showEmojiSuggestions, setShowEmojiSuggestions] = useState(false)
 
