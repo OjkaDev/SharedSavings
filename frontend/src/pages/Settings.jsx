@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import {
   PlusIcon,
@@ -29,7 +31,8 @@ const TABS = [
 ]
 
 export default function Settings() {
-  const { user } = useAuth()
+  const { user, updatePassword: changePassword } = useAuth()
+  const [searchParams] = useSearchParams()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -47,23 +50,16 @@ export default function Settings() {
   const [profileMsg, setProfileMsg] = useState('')
   const [passwordMsg, setPasswordMsg] = useState('')
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('Alimentación')
-  const [activeTab, setActiveTab] = useState('perfil')
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab')
+    return TABS.some(t => t.id === tab) ? tab : 'perfil'
+  })
+  const [categoryMsg, setCategoryMsg] = useState('')
   const [showEmojiSuggestions, setShowEmojiSuggestions] = useState(false)
-  const emojiPanelRef = useRef(null)
 
   useEffect(() => {
     fetchCategories()
     setProfileName(user?.name || '')
-  }, [])
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (emojiPanelRef.current && !emojiPanelRef.current.contains(event.target)) {
-        setShowEmojiSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const fetchCategories = async () => {
@@ -84,9 +80,12 @@ export default function Settings() {
       await api.post('/categories', newCategory)
       setNewCategory({ name: '', icon: '💰' })
       fetchCategories()
+      setCategoryMsg('Categoría creada correctamente')
+      setTimeout(() => setCategoryMsg(''), 3000)
     } catch (error) {
       console.error('Error creating category:', error)
-      alert('Error al crear la categoría')
+      setCategoryMsg('Error al crear la categoría')
+      setTimeout(() => setCategoryMsg(''), 3000)
     }
   }
 
@@ -148,10 +147,15 @@ export default function Settings() {
       return
     }
     try {
-      await api.put('/auth/password', {
-        current_password: passwordData.current_password,
-        new_password: passwordData.new_password,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.current_password,
       })
+      if (signInError) {
+        setPasswordMsg('Contraseña actual incorrecta')
+        return
+      }
+      await changePassword(passwordData.new_password)
       setPasswordMsg('Contraseña actualizada correctamente')
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
     } catch (error) {
@@ -317,17 +321,18 @@ export default function Settings() {
                           setNewCategory({ ...newCategory, icon: e.target.value })
                         }
                         onFocus={() => setShowEmojiSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowEmojiSuggestions(false), 150)}
                         className="input-field text-center text-lg"
                         maxLength={4}
                       />
                     </div>
                   </div>
                   {showEmojiSuggestions && (
-                    <div ref={emojiPanelRef} className="mb-4 animate-fade-in">
+                    <div className="mb-4 animate-fade-in" onMouseDown={(e) => e.preventDefault()}>
                       <label className="block text-sm font-medium text-dark-300 mb-2 text-center">
                         Sugerencia de icono
                       </label>
-                      <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="flex flex-wrap gap-2 mb-3 justify-center">
                         {Object.keys(EMOJI_CATEGORIES).map((cat) => (
                           <button
                             key={cat}
@@ -343,7 +348,7 @@ export default function Settings() {
                           </button>
                         ))}
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 justify-center">
                         {EMOJI_CATEGORIES[selectedEmojiCategory].map((emoji) => (
                           <button
                             key={emoji}
@@ -365,11 +370,16 @@ export default function Settings() {
                     </div>
                   )}
 
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center space-y-3">
                     <button type="submit" className="btn-primary w-full max-w-xs inline-flex items-center justify-center h-11">
                       <PlusIcon className="h-5 w-5 mr-1" />
                       Añadir
                     </button>
+                    {categoryMsg && (
+                      <span className={`text-sm ${categoryMsg.includes('correctamente') ? 'text-green-400' : 'text-red-400'}`}>
+                        {categoryMsg}
+                      </span>
+                    )}
                   </div>
                 </form>
 

@@ -82,7 +82,7 @@ Proyecto-Cuenta/
 │   │   │   ├── Household.jsx      # List/create/delete grupos
 │   │   │   ├── HouseholdDetail.jsx # Stats Dashboard style + debts + shared expenses with status
 │   │   │   ├── PersonalFinances.jsx # CRUD + share to household + FAB + period filter
-│   │   │   ├── Settings.jsx        # Profile, password, categories
+│   │   │   ├── Settings.jsx        # Profile, password (Supabase re-auth + updateUser), categories. Deep-link via ?tab=categorias
 │   │   │   └── Reports.jsx        # 4 Chart.js graphs + period filter
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx  # Supabase Auth: user, loading, login, register, logout, resetPassword, updatePassword
@@ -91,7 +91,7 @@ Proyecto-Cuenta/
 │   │   ├── services/
 │   │   │   └── api.js         # Axios + Supabase token interceptor + 401 redirect
 │   │   └── utils/
-│   │       └── dateUtils.js   # Period helpers (month/quarter/semester/year) + getCurrentMonth, MONTHS, PERIODS
+│   │       └── dateUtils.js   # Period helpers (month/quarter/semester/year) + getCurrentMonth, MONTHS, PERIODS, formatLocalDate (TZ-safe YYYY-MM-DD)
 │   ├── package.json
 │   ├── vite.config.js      # Proxy /api -> localhost:8000
 │   ├── tailwind.config.js
@@ -186,6 +186,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 | GET | `/api/personal/monthly` | Yes | Monthly income/expenses |
 | GET | `/api/personal/top-expenses` | Yes | Top 10 expenses by amount (personal + debts, filterable by date range) |
 | POST | `/api/personal/expenses` | Yes | Create income or expense |
+| PUT | `/api/personal/expenses/{id}` | Yes | Update (owner only; if shared blocks amount/type changes and any paid split) |
 | DELETE | `/api/personal/expenses/{id}` | Yes | Delete (blocked if shared) |
 
 ### Categories (`/api/categories`)
@@ -261,7 +262,8 @@ The `/personal/expenses` endpoint returns a unified list:
 | ExpenseCreate | household_id, amount, description?, category_id?, date, split_type, splits[] |
 | ExpenseResponse | id, household_id, paid_by, amount, ..., splits[] |
 | PersonalExpenseCreate | amount, description?, category_id?, date, type("expense") |
-| PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid?, is_fully_paid? |
+| PersonalExpenseUpdate | amount, description?, category_id?, date, type("expense") |
+| PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid?, is_fully_paid?, has_paid_splits? |
 | PersonalSummary | income, expenses, balance, by_category |
 | TopExpense | description, amount, category_name, date, type("personal"/"debt") |
 | MonthlyPersonalData | month, income, expenses, balance |
@@ -315,6 +317,15 @@ The `/personal/expenses` endpoint returns a unified list:
 - Date filter on debt_total in summary endpoint
 - Fixed: table-header alignment (added px-4)
 - fab and fab-secondary CSS utilities for floating action buttons
+- **Password change via Supabase:** Settings.jsx re-autentica con `signInWithPassword` y actualiza con `supabase.auth.updateUser` (sin pasar por backend)
+- **Edit personal expenses:** PUT `/api/personal/expenses/{id}` con restricciones para compartidos (no cambiar precio/tipo, bloqueado si hay pagos)
+- **`has_paid_splits` flag** en PersonalExpenseResponse: true si al menos un split no-pagador está pagado
+- **TZ-safe dates:** `formatLocalDate()` reemplaza `toISOString().split('T')[0]` en getMonthRange/Quarter/Semester (fix bug último día del mes)
+- **Required category in PersonalFinances:** select required + opción `disabled` + mensaje rojo si vacío
+- **Loading visible al refrescar PersonalFinances:** `setLoading(true)` al inicio de fetchData; DateFilter se mantiene montado para evitar bucle infinito
+- **Settings.jsx success message** al crear categoría (3s autohide)
+- **Settings emoji panel:** `onBlur+setTimeout` y `onMouseDown` en panel (fix doble clic en Añadir) + sugerencias centradas
+- **Dashboard quick-access "Categorías"** → `/settings?tab=categorias` (deep-link)
 
 **Pending:**
 - Database review and security
@@ -327,7 +338,7 @@ The `/personal/expenses` endpoint returns a unified list:
 1. **Helpers layer** — `utils/helpers.py` contains reusable functions: `get_household_or_403`, `create_expense_splits`, `get_shared_expense_info`, `apply_date_filters`
 2. **No migrations** — Tables auto-created on startup (not production-ready)
 3. **No pagination** — All endpoints return everything
-4. **No expense updates** — Create/delete only
+4. **Personal expense updates** — PUT `/api/personal/expenses/{id}` permite editar (owner only). Si compartido, bloquea cambios de `amount`/`type` y rechaza si algún split está pagado. Shared expenses solo se editan vía `/api/expenses` (no PUT aún).
 5. **Profile update uses query param** — `PUT /api/auth/profile?name=foo`
 6. **Default categories** — 7 Spanish categories, global (created once at startup), visible to all users
 7. **Custom category visibility** — `household_categories` junction table links custom categories to households. Auto-linked when sharing expenses.
@@ -352,7 +363,12 @@ The `/personal/expenses` endpoint returns a unified list:
 26. **Terminology** — "Vivienda" renamed to "Grupo" throughout the app (navbar, pages, dialogs)
 27. **Pay endpoint unified** — `PUT /{id}/pay` with optional `?user_id=X` replaces separate pay-all and pay-member endpoints
 28. **Reusable components** — `LoadingSpinner`, `StatCard`, `Modal` available for consistent UI
-29. **Color scheme:**
+29. **TZ-safe date formatting** — Usar `formatLocalDate(d)` de `dateUtils.js` (no `toISOString().split('T')[0]`). En zonas al este de UTC, `toISOString()` desfasa el día y los rangos de mes pierden el último día. Aplicado en `getMonthRange/Quarter/Semester` y en defaults de `<input type="date">`.
+30. **Password change (Settings)** — Supabase Auth users no tienen `password_hash`. Settings.jsx llama `supabase.auth.signInWithPassword` para re-autenticar y luego `supabase.auth.updateUser({ password })` (vía `updatePassword` aliasada de `AuthContext`). Endpoint legacy `PUT /api/auth/password` rechaza Supabase users.
+31. **DateFilter mount loop** — DateFilter dispara `onChange` en su `useEffect` inicial. Si el contenedor lo desmonta durante `loading`, al remontar genera un nuevo `dateRange` → fetch infinito. PersonalFinances mantiene DateFilter montado y solo reemplaza el bloque de stats/tabla con el spinner.
+32. **Settings deep-link** — `/settings?tab=categorias` (o `?tab=perfil`) selecciona la pestaña al montar. Validado contra el array `TABS`.
+33. **`has_paid_splits` flag** — true cuando al menos un split no-pagador está pagado. Frontend lo usa para deshabilitar el botón Editar.
+34. **Color scheme:**
      - Ingreso: 🟢 green
      - Gasto: 🔴 red
      - Shared by me: 🔴 red + "(€X compartido)"
@@ -365,6 +381,11 @@ The `/personal/expenses` endpoint returns a unified list:
 ## Recent Commits
 
 ```
+be57e6e Feat: Acceso rápido a Categorías desde el Dashboard (deep-link ?tab=categorias)
+5601e5e Fix: Bucle infinito de fetch al recargar PersonalFinances (DateFilter mount loop)
+49fa025 Feat/Fix: Cuatro ajustes en PersonalFinances (editar, fecha último día, categoría required, loading)
+c16cbb1 Fix: Tres ajustes en Settings - categorías (mensaje éxito, doble clic, centrado)
+ffc78fe Fix: Cambio de contraseña usa Supabase Auth (re-auth + updateUser)
 44fe2f2 Refactor: Eliminar código muerto, extraer helpers y crear componentes reutilizables
 ff3659d Feat: Cambiar Vivienda a Grupo + accesos rápidos personalizados en Dashboard
 a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter

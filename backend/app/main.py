@@ -45,6 +45,7 @@ origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://sharedsavings.vercel.app",
+    "http://192.168.1.18:5173",
 ]
 
 app.add_middleware(

@@ -10,12 +10,19 @@ const PERIODS = [
   { value: 'year', label: 'Año' },
 ]
 
+export function formatLocalDate(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function getMonthRange(month, year) {
   const start = new Date(year, month - 1, 1)
   const end = new Date(year, month, 0)
   return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: end.toISOString().split('T')[0],
+    start_date: formatLocalDate(start),
+    end_date: formatLocalDate(end),
   }
 }
 
@@ -24,8 +31,8 @@ export function getQuarterRange(quarter, year) {
   const start = new Date(year, startMonth, 1)
   const end = new Date(year, startMonth + 3, 0)
   return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: end.toISOString().split('T')[0],
+    start_date: formatLocalDate(start),
+    end_date: formatLocalDate(end),
   }
 }
 
@@ -34,8 +41,8 @@ export function getSemesterRange(semester, year) {
   const start = new Date(year, startMonth, 1)
   const end = new Date(year, startMonth + 6, 0)
   return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: end.toISOString().split('T')[0],
+    start_date: formatLocalDate(start),
+    end_date: formatLocalDate(end),
   }
 }
 

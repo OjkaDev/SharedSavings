@@ -4,13 +4,14 @@ import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
 import DateFilter from '../components/DateFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
+import { getCurrentMonth, getMonthRange, getPeriodLabel, formatLocalDate } from '../utils/dateUtils'
 import {
   PlusIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   TrashIcon,
   HomeIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline'
 
 export default function PersonalFinances() {
@@ -23,11 +24,14 @@ export default function PersonalFinances() {
   const [selectedIds, setSelectedIds] = useState([])
   const [summary, setSummary] = useState({ income: 0, expenses: 0, balance: 0 })
   const [dateRange, setDateRange] = useState(() => getMonthRange(getCurrentMonth().month, getCurrentMonth().year))
+  const [editingId, setEditingId] = useState(null)
+  const [editingShared, setEditingShared] = useState(false)
+  const [formError, setFormError] = useState('')
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
     category_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: formatLocalDate(new Date()),
     type: 'expense',
   })
 
@@ -43,6 +47,7 @@ export default function PersonalFinances() {
   }, [searchParams, setSearchParams])
 
   const fetchData = async () => {
+    setLoading(true)
     try {
       const [transactionsRes, categoriesRes, summaryRes] = await Promise.all([
         api.get('/personal/expenses', { params: dateRange }),
@@ -61,22 +66,49 @@ export default function PersonalFinances() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setFormError('')
+    if (!formData.category_id) {
+      setFormError('Selecciona una categoría')
+      return
+    }
     try {
-      await api.post('/personal/expenses', formData)
+      if (editingId) {
+        await api.put(`/personal/expenses/${editingId}`, formData)
+      } else {
+        await api.post('/personal/expenses', formData)
+      }
       setShowModal(false)
       resetForm()
       fetchData()
     } catch (error) {
-      console.error('Error creating transaction:', error)
+      console.error('Error saving transaction:', error)
+      setFormError(error.response?.data?.detail || 'Error al guardar')
     }
   }
 
+  const startEdit = (transaction) => {
+    setEditingId(transaction.id)
+    setEditingShared(!!transaction.shared_expense_id)
+    setFormError('')
+    setFormData({
+      amount: String(transaction.amount),
+      description: transaction.description || '',
+      category_id: transaction.category_id ? String(transaction.category_id) : '',
+      date: formatLocalDate(new Date(transaction.date)),
+      type: transaction.type,
+    })
+    setShowModal(true)
+  }
+
   const resetForm = () => {
+    setEditingId(null)
+    setEditingShared(false)
+    setFormError('')
     setFormData({
       amount: '',
       description: '',
       category_id: '',
-      date: new Date().toISOString().split('T')[0],
+      date: formatLocalDate(new Date()),
       type: 'expense',
     })
   }
@@ -137,10 +169,6 @@ export default function PersonalFinances() {
     (id) => transactions.find((t) => t.id === id)?.type === 'income'
   )
 
-  if (loading) {
-    return <LoadingSpinner />
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -150,6 +178,10 @@ export default function PersonalFinances() {
 
       <DateFilter onChange={setDateRange} />
 
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+      <>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {[
           {
@@ -309,6 +341,24 @@ export default function PersonalFinances() {
                           </button>
                         )}
                         <button
+                          onClick={() => startEdit(transaction)}
+                          disabled={transaction.is_debt || transaction.has_paid_splits}
+                          className={`transition ${
+                            transaction.is_debt || transaction.has_paid_splits
+                              ? 'text-dark-600 cursor-not-allowed'
+                              : 'text-dark-400 hover:text-primary-400'
+                          }`}
+                          title={
+                            transaction.is_debt
+                              ? 'No puedes editar gastos de otros'
+                              : transaction.has_paid_splits
+                              ? 'No se puede editar: ya hay pagos realizados'
+                              : 'Editar'
+                          }
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                        <button
                           onClick={() => deleteTransaction(transaction.id)}
                           className={`transition ${
                             transaction.is_debt || (transaction.shared_expense_id && transaction.is_fully_paid)
@@ -340,10 +390,20 @@ export default function PersonalFinances() {
         )}
       </div>
 
+      </>
+      )}
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2 className="text-xl font-semibold mb-6 text-dark-100">Nuevo Registro</h2>
+            <h2 className="text-xl font-semibold mb-6 text-dark-100">
+              {editingId ? 'Editar Registro' : 'Nuevo Registro'}
+            </h2>
+            {editingShared && (
+              <div className="mb-5 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-sm">
+                💡 Para modificar el precio o tipo, descompártelo primero.
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div>
@@ -351,7 +411,7 @@ export default function PersonalFinances() {
                     Tipo
                   </label>
                   <div className="flex space-x-6">
-                    <label className="flex items-center cursor-pointer">
+                    <label className={`flex items-center ${editingShared ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                       <input
                         type="radio"
                         value="expense"
@@ -359,11 +419,12 @@ export default function PersonalFinances() {
                         onChange={(e) =>
                           setFormData({ ...formData, type: e.target.value })
                         }
+                        disabled={editingShared}
                         className="mr-2 accent-primary-500"
                       />
                       <span className="text-dark-200">Gasto</span>
                     </label>
-                    <label className="flex items-center cursor-pointer">
+                    <label className={`flex items-center ${editingShared ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                       <input
                         type="radio"
                         value="income"
@@ -371,6 +432,7 @@ export default function PersonalFinances() {
                         onChange={(e) =>
                           setFormData({ ...formData, type: e.target.value })
                         }
+                        disabled={editingShared}
                         className="mr-2 accent-primary-500"
                       />
                       <span className="text-dark-200">Ingreso</span>
@@ -389,7 +451,9 @@ export default function PersonalFinances() {
                     onChange={(e) =>
                       setFormData({ ...formData, amount: e.target.value })
                     }
-                    className="input-field"
+                    disabled={editingShared}
+                    title={editingShared ? 'Descomparte el gasto primero para cambiar el precio' : ''}
+                    className={`input-field ${editingShared ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder="0.00"
                     required
                   />
@@ -420,8 +484,9 @@ export default function PersonalFinances() {
                       setFormData({ ...formData, category_id: e.target.value })
                     }
                     className="input-field"
+                    required
                   >
-                    <option value="">Sin categoría</option>
+                    <option value="" disabled>Selecciona una categoría</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.icon} {c.name}
@@ -444,6 +509,11 @@ export default function PersonalFinances() {
                   />
                 </div>
               </div>
+              {formError && (
+                <div className="mt-4 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                  {formError}
+                </div>
+              )}
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"

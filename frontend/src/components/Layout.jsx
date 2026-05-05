@@ -14,7 +14,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
-  { name: 'Grupo', href: '/household', icon: UserGroupIcon },
+  { name: 'Grupos', href: '/household', icon: UserGroupIcon },
   { name: 'Finanzas', href: '/personal', icon: WalletIcon },
   { name: 'Informes', href: '/reports', icon: ChartBarIcon },
   { name: 'Ajustes', href: '/settings', icon: Cog6ToothIcon },

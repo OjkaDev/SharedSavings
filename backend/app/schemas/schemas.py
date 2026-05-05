@@ -133,6 +133,14 @@ class PersonalExpenseCreate(BaseModel):
     type: str = "expense"
 
 
+class PersonalExpenseUpdate(BaseModel):
+    amount: float
+    description: Optional[str] = None
+    category_id: Optional[int] = None
+    date: datetime
+    type: str = "expense"
+
+
 class PersonalExpenseResponse(BaseModel):
     id: int
     user_id: int
@@ -149,6 +157,7 @@ class PersonalExpenseResponse(BaseModel):
     is_debt: Optional[bool] = None
     is_paid: Optional[bool] = None
     is_fully_paid: Optional[bool] = None
+    has_paid_splits: Optional[bool] = None
 
     class Config:
         from_attributes = True

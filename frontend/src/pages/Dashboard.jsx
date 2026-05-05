@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
-import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon, TagIcon } from '@heroicons/react/24/outline'
 import { getCurrentMonth, getMonthRange, MONTHS } from '../utils/dateUtils'
 import LoadingSpinner from '../components/LoadingSpinner'
 import StatCard from '../components/StatCard'
@@ -306,6 +306,13 @@ export default function Dashboard() {
               </div>
               <p className="text-dark-100 font-medium text-sm md:text-base">Informes</p>
               <p className="text-dark-500 text-xs mt-1">Estadísticas detalladas</p>
+            </Link>
+            <Link to="/settings?tab=categorias" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center mb-2 md:mb-3">
+                <TagIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              </div>
+              <p className="text-dark-100 font-medium text-sm md:text-base">Categorías</p>
+              <p className="text-dark-500 text-xs mt-1">Gestionar categorías</p>
             </Link>
           </div>
         </div>

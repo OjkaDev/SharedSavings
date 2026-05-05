@@ -4,7 +4,7 @@ from sqlalchemy import func, extract, or_
 from typing import List, Optional
 from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members, household_categories
-from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData, TopExpense
+from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseUpdate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData, TopExpense
 from app.utils.auth import get_current_user
 from app.utils.helpers import get_shared_expense_info, apply_date_filters
 
@@ -40,13 +40,15 @@ def get_personal_expenses(
         my_share = split.amount if split else None
         is_shared_by_me = shared is not None
         is_fully_paid = False
+        has_paid_splits = False
         if shared_expense_id:
             other_splits = db.query(ExpenseSplit).filter(
                 ExpenseSplit.expense_id == shared_expense_id,
                 ExpenseSplit.user_id != current_user.id,
             ).all()
             is_fully_paid = all(s.paid for s in other_splits) if other_splits else True
-        
+            has_paid_splits = any(s.paid for s in other_splits)
+
         exp_dict = {
             "id": exp.id,
             "user_id": exp.user_id,
@@ -62,6 +64,7 @@ def get_personal_expenses(
             "is_shared_by_me": is_shared_by_me,
             "is_debt": False,
             "is_fully_paid": is_fully_paid,
+            "has_paid_splits": has_paid_splits,
         }
         result.append(exp_dict)
     
@@ -344,6 +347,69 @@ def create_personal_expense(
         type=expense_data.type,
     )
     db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    return expense
+
+
+@router.put("/expenses/{expense_id}", response_model=PersonalExpenseResponse)
+def update_personal_expense(
+    expense_id: int,
+    expense_data: PersonalExpenseUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    expense = (
+        db.query(PersonalExpense)
+        .filter(
+            PersonalExpense.id == expense_id,
+            PersonalExpense.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not expense:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gasto no encontrado",
+        )
+
+    shared = db.query(Expense).filter(Expense.personal_expense_id == expense_id).first()
+
+    if shared:
+        any_paid = (
+            db.query(ExpenseSplit)
+            .filter(
+                ExpenseSplit.expense_id == shared.id,
+                ExpenseSplit.user_id != shared.paid_by,
+                ExpenseSplit.paid == True,
+            )
+            .first()
+        )
+        if any_paid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede editar: ya hay pagos realizados",
+            )
+        if expense_data.amount != expense.amount:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Descompártelo primero para cambiar el precio",
+            )
+        if expense_data.type != expense.type:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede cambiar el tipo en gastos compartidos",
+            )
+        shared.description = expense_data.description
+        shared.category_id = expense_data.category_id
+        shared.date = expense_data.date
+
+    expense.amount = expense_data.amount
+    expense.description = expense_data.description
+    expense.category_id = expense_data.category_id
+    expense.date = expense_data.date
+    expense.type = expense_data.type
+
     db.commit()
     db.refresh(expense)
     return expense

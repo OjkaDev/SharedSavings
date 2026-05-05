@@ -142,7 +142,7 @@ Proyecto-Cuenta/
 - [x] Cambio en Settings.jsx, interfaz lateral (sidebar + tabs móvil)
 - [x] Modificación de categorías y mejoras en Settings.jsx
 - [x] Mejorar login y registro (Correo confirmación?)
-- [ ] Revision BBDD y problemas de seguridad.
+- [x] Revision BBDD y problemas de seguridad.
 - [x] Gastos compartidos deben contar para el usuario solo la parte proporcional.
 - [x] Mejora filtros en PersonalFinances.jsx y HouseholdDetail.jsx.
 
