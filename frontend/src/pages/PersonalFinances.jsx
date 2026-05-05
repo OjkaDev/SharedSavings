@@ -169,10 +169,6 @@ export default function PersonalFinances() {
     (id) => transactions.find((t) => t.id === id)?.type === 'income'
   )
 
-  if (loading) {
-    return <LoadingSpinner />
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -182,6 +178,10 @@ export default function PersonalFinances() {
 
       <DateFilter onChange={setDateRange} />
 
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+      <>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {[
           {
@@ -389,6 +389,9 @@ export default function PersonalFinances() {
           </div>
         )}
       </div>
+
+      </>
+      )}
 
       {showModal && (
         <div className="modal-overlay">
