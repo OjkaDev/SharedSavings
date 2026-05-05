@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import {
   PlusIcon,
@@ -29,7 +30,7 @@ const TABS = [
 ]
 
 export default function Settings() {
-  const { user } = useAuth()
+  const { user, updatePassword: changePassword } = useAuth()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -148,10 +149,15 @@ export default function Settings() {
       return
     }
     try {
-      await api.put('/auth/password', {
-        current_password: passwordData.current_password,
-        new_password: passwordData.new_password,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.current_password,
       })
+      if (signInError) {
+        setPasswordMsg('Contraseña actual incorrecta')
+        return
+      }
+      await changePassword(passwordData.new_password)
       setPasswordMsg('Contraseña actualizada correctamente')
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
     } catch (error) {
