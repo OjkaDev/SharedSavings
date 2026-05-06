@@ -8,3 +8,4 @@ sqlalchemy==2.0.48
 psycopg2-binary==2.9.11
 python-multipart==0.0.22
 supabase==2.7.2
+requests==2.32.3
