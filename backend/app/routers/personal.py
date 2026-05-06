@@ -6,7 +6,7 @@ from datetime import datetime
 from app.models.database import get_db, User, PersonalExpense, Category, Expense, ExpenseSplit, household_members, household_categories
 from app.schemas.schemas import PersonalExpenseCreate, PersonalExpenseUpdate, PersonalExpenseResponse, PersonalSummary, MonthlyPersonalData, TopExpense
 from app.utils.auth import get_current_user
-from app.utils.helpers import get_shared_expense_info, apply_date_filters
+from app.utils.helpers import get_shared_expense_info, get_or_404, init_monthly_buckets, apply_date_filters
 
 router = APIRouter(prefix="/personal", tags=["Personal Expenses"])
 
@@ -227,10 +227,7 @@ def get_monthly_personal(
         .all()
     )
 
-    # Inicializar los 12 meses con 0
-    result = []
-    for m in range(1, 13):
-        result.append({"month": m, "income": 0.0, "expenses": 0.0, "balance": 0.0})
+    result = init_monthly_buckets({"income": 0.0, "expenses": 0.0, "balance": 0.0})
 
     # Rellenar con datos reales
     for month_num, exp_type, total in monthly_data:
@@ -359,19 +356,7 @@ def update_personal_expense(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    expense = (
-        db.query(PersonalExpense)
-        .filter(
-            PersonalExpense.id == expense_id,
-            PersonalExpense.user_id == current_user.id,
-        )
-        .first()
-    )
-    if not expense:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gasto no encontrado",
-        )
+    expense = get_or_404(db, PersonalExpense, expense_id, "Gasto no encontrado", user_id=current_user.id)
 
     shared = db.query(Expense).filter(Expense.personal_expense_id == expense_id).first()
 
@@ -421,23 +406,9 @@ def delete_personal_expense(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    expense = (
-        db.query(PersonalExpense)
-        .filter(
-            PersonalExpense.id == expense_id,
-            PersonalExpense.user_id == current_user.id,
-        )
-        .first()
-    )
-
-    if not expense:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found",
-        )
+    expense = get_or_404(db, PersonalExpense, expense_id, "Expense not found", user_id=current_user.id)
 
     # Verificar si fue compartido (buscar Expense con este personal_expense_id)
-    from app.models.database import Expense
     shared_expense = db.query(Expense).filter(
         Expense.personal_expense_id == expense.id
     ).first()

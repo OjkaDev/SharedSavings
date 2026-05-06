@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '../services/api'
 import DateFilter from '../components/DateFilter'
+import StatCard from '../components/StatCard'
+import { useFetch } from '../hooks/useFetch'
 import { getCurrentMonth, getMonthRange, getPeriodLabel } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
@@ -61,7 +63,7 @@ export default function Reports() {
   const [monthlyShared, setMonthlyShared] = useState([])
   const [personalSummary, setPersonalSummary] = useState(null)
   const [topExpenses, setTopExpenses] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { loading, run } = useFetch()
 
   const year = useMemo(() => dateRange?.year || currentYear, [dateRange, currentYear])
 
@@ -69,24 +71,18 @@ export default function Reports() {
     fetchData()
   }, [dateRange])
 
-  const fetchData = async () => {
-    try {
-      const [personalRes, sharedRes, personalSumRes, topRes] = await Promise.all([
-        api.get('/personal/monthly', { params: { year } }),
-        api.get('/expenses/monthly', { params: { year } }),
-        api.get('/personal/summary', { params: dateRange }),
-        api.get('/personal/top-expenses', { params: { start_date: dateRange.start_date, end_date: dateRange.end_date, limit: 10 } }),
-      ])
-      setMonthlyPersonal(personalRes.data)
-      setMonthlyShared(sharedRes.data)
-      setPersonalSummary(personalSumRes.data)
-      setTopExpenses(topRes.data)
-    } catch (error) {
-      console.error('Error fetching reports data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const fetchData = () => run(async () => {
+    const [personalRes, sharedRes, personalSumRes, topRes] = await Promise.all([
+      api.get('/personal/monthly', { params: { year } }),
+      api.get('/expenses/monthly', { params: { year } }),
+      api.get('/personal/summary', { params: dateRange }),
+      api.get('/personal/top-expenses', { params: { start_date: dateRange.start_date, end_date: dateRange.end_date, limit: 10 } }),
+    ])
+    setMonthlyPersonal(personalRes.data)
+    setMonthlyShared(sharedRes.data)
+    setPersonalSummary(personalSumRes.data)
+    setTopExpenses(topRes.data)
+  })
 
   const getMonthsInRange = () => {
     if (!dateRange?.start_date || !dateRange?.end_date) return null
@@ -263,14 +259,6 @@ export default function Reports() {
     },
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    )
-  }
-
   const stats = [
     {
       name: 'Ingresos',
@@ -308,88 +296,87 @@ export default function Reports() {
         <DateFilter onChange={setDateRange} year={currentYear} />
       </div>
 
-      {/* Cards resumen por periodo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {stats.map((stat) => (
-          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
-            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
-            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" />
+        </div>
+      ) : (
+        <>
+          {/* Cards resumen por periodo */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {stats.map((stat) => (
+              <StatCard key={stat.name} {...stat} subtitle={`Total ${periodLabel}`} />
+            ))}
+          </div>
+
+          {/* Gráficas */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. Ingresos vs Gastos */}
+            <div className="card p-4 md:p-6">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
+                  <ChartBarIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Ingresos vs Gastos</h2>
               </div>
-              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
-            </div>
-            <p className="text-dark-500 text-xs">Total {periodLabel}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Gráficas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Ingresos vs Gastos */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
-              <ChartBarIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Ingresos vs Gastos</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Bar data={incomeVsExpensesData} options={chartOptions} />
-          </div>
-        </div>
-
-        {/* 2. Distribución por categoría */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3">
-              <ChartPieIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Gastos por categoría</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            {personalSummary?.by_category?.length > 0 ? (
-              <Doughnut data={categoryData} options={doughnutOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
-                No hay datos de categorías
+              <div className="h-56 md:h-72">
+                <Bar data={incomeVsExpensesData} options={chartOptions} />
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Gastos compartidos vs personales */}
-        <div className="card p-4 md:p-6 lg:col-span-2">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
-              <ChartBarIcon className="h-4 w-4 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-dark-50">Gastos personales vs compartidos</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Bar data={sharedVsPersonalData} options={chartOptions} />
-          </div>
-        </div>
 
-        {/* 4. Top Gastos */}
-        <div className="card p-4 md:p-6 lg:col-span-2">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mr-3">
-              <FireIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Top Gastos</h2>
-          </div>
-          <div className="h-64 md:h-80">
-            {topExpenses.length > 0 ? (
-              <Bar data={topExpensesData} options={horizontalBarOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
-                No hay datos de gastos
+            {/* 2. Distribución por categoría */}
+            <div className="card p-4 md:p-6">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3">
+                  <ChartPieIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Gastos por categoría</h2>
               </div>
-            )}
+              <div className="h-56 md:h-72">
+                {personalSummary?.by_category?.length > 0 ? (
+                  <Doughnut data={categoryData} options={doughnutOptions} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-dark-400 text-sm">
+                    No hay datos de categorías
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Gastos compartidos vs personales */}
+            <div className="card p-4 md:p-6 lg:col-span-2">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
+                  <ChartBarIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Gastos personales vs compartidos</h2>
+              </div>
+              <div className="h-56 md:h-72">
+                <Bar data={sharedVsPersonalData} options={chartOptions} />
+              </div>
+            </div>
+
+            {/* 4. Top Gastos */}
+            <div className="card p-4 md:p-6 lg:col-span-2">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mr-3">
+                  <FireIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Top Gastos</h2>
+              </div>
+              <div className="h-64 md:h-80">
+                {topExpenses.length > 0 ? (
+                  <Bar data={topExpensesData} options={horizontalBarOptions} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-dark-400 text-sm">
+                    No hay datos de gastos
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

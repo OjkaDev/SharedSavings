@@ -5,6 +5,7 @@ from typing import List
 from app.models.database import get_db, User, Category, household_categories
 from app.schemas.schemas import CategoryCreate, CategoryResponse
 from app.utils.auth import get_current_user
+from app.utils.helpers import get_or_404
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -58,13 +59,7 @@ def update_category(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    category = db.query(Category).filter(Category.id == category_id).first()
-
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found",
-        )
+    category = get_or_404(db, Category, category_id, "Category not found")
 
     if category.is_default:
         raise HTTPException(
@@ -92,13 +87,7 @@ def delete_category(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    category = db.query(Category).filter(Category.id == category_id).first()
-
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found",
-        )
+    category = get_or_404(db, Category, category_id, "Category not found")
 
     if category.is_default:
         raise HTTPException(

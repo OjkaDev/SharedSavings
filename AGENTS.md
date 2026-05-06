@@ -52,7 +52,7 @@ Proyecto-Cuenta/
 │   │   └── utils/
 │   │       ├── __init__.py
 │   │       ├── auth.py      # JWT verify (ES256 with JWKS) + get_current_user
-│   │       └── helpers.py   # Reusable: get_household_or_403, create_expense_splits, get_shared_expense_info, apply_date_filters
+│   │       └── helpers.py   # Reusable: get_or_404, init_monthly_buckets, get_household_or_403, create_expense_splits, get_shared_expense_info, apply_date_filters
 │   ├── requirements.txt
 │   └── .env               # SUPABASE_URL, SECRET_KEY, DATABASE_URL
 │
@@ -84,6 +84,9 @@ Proyecto-Cuenta/
 │   │   │   ├── PersonalFinances.jsx # CRUD + share to household + FAB + period filter
 │   │   │   ├── Settings.jsx        # Profile, password (Supabase re-auth + updateUser), categories. Deep-link via ?tab=categorias
 │   │   │   └── Reports.jsx        # 4 Chart.js graphs + period filter
+│   │   ├── hooks/
+│   │   │   ├── useFetch.js        # loading + run(asyncFn): centraliza try/catch/setLoading en 4 páginas
+│   │   │   └── useFormModal.js    # showModal, editingId, formData, openForNew/openForEdit/closeModal
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx  # Supabase Auth: user, loading, login, register, logout, resetPassword, updatePassword
 │   │   ├── lib/
@@ -264,7 +267,8 @@ The `/personal/expenses` endpoint returns a unified list:
 | ExpenseResponse | id, household_id, paid_by, amount, ..., splits[] |
 | PersonalExpenseCreate | amount, description?, category_id?, date, type("expense") |
 | PersonalExpenseUpdate | amount, description?, category_id?, date, type("expense") |
-| PersonalExpenseResponse | id, user_id, amount, ..., shared_expense_id?, my_share?, is_shared_by_me?, is_debt?, is_paid?, is_fully_paid?, has_paid_splits? |
+| PersonalExpenseBase | id, user_id, amount, description?, category_id?, date, type, shared_expense_id?, created_at, category? |
+| PersonalExpenseResponse | extends PersonalExpenseBase + my_share?, is_shared_by_me?, is_debt?, is_paid?, is_fully_paid?, has_paid_splits? |
 | PersonalSummary | income, expenses, balance, by_category |
 | TopExpense | description, amount, category_name, date, type("personal"/"debt") |
 | MonthlyPersonalData | month, income, expenses, balance |
@@ -332,6 +336,10 @@ The `/personal/expenses` endpoint returns a unified list:
 - **Dashboard Accesos Rápidos móvil:** tira horizontal deslizable (`flex overflow-x-auto`, items `w-28 flex-shrink-0`) en móvil; grid de 3 columnas en desktop (`lg:grid lg:grid-cols-3`). En móvil aparece encima del Resumen Financiero (`order-first / order-last lg:order-none`)
 - **Fix deudas bilaterales:** `PUT /households/{id}/pay` ahora liquida ambos lados de la relación (mis splits en gastos del otro + sus splits en mis gastos) para reflejar correctamente el saldo neto tras el pago
 
+- **Refactor frontend:** `useFetch` hook (4 páginas), `useFormModal` hook (PersonalFinances), `StatCard` adoptado en todas las páginas, `TransactionRow` componente local en PersonalFinances
+- **Refactor backend:** `get_or_404()` genérico en helpers.py (reemplaza 7 bloques manuales), `init_monthly_buckets()` helper, membership checks en expenses.py usan `get_household_or_403()`, `PersonalExpenseBase` + `PersonalExpenseResponse` en schemas.py
+- **Fix bucle infinito DateFilter** en HouseholdDetail.jsx y Reports.jsx (mismo patrón: early return desmontaba DateFilter)
+
 **Pending:**
 - Database review and security
 - Deployment to Vercel + Render
@@ -344,7 +352,7 @@ The `/personal/expenses` endpoint returns a unified list:
 
 ## Gotchas & Design Notes
 
-1. **Helpers layer** — `utils/helpers.py` contains reusable functions: `get_household_or_403`, `create_expense_splits`, `get_shared_expense_info`, `apply_date_filters`
+1. **Helpers layer** — `utils/helpers.py`: `get_or_404(db, model, id, detail, **filters)`, `init_monthly_buckets(template)`, `get_household_or_403`, `create_expense_splits`, `get_shared_expense_info`, `apply_date_filters`
 2. **No migrations** — Tables auto-created on startup (not production-ready)
 3. **No pagination** — All endpoints return everything
 4. **Personal expense updates** — PUT `/api/personal/expenses/{id}` permite editar (owner only). Si compartido, bloquea cambios de `amount`/`type` y rechaza si algún split está pagado. Shared expenses solo se editan vía `/api/expenses` (no PUT aún).
@@ -374,7 +382,7 @@ The `/personal/expenses` endpoint returns a unified list:
 28. **Reusable components** — `LoadingSpinner`, `StatCard`, `Modal` available for consistent UI
 29. **TZ-safe date formatting** — Usar `formatLocalDate(d)` de `dateUtils.js` (no `toISOString().split('T')[0]`). En zonas al este de UTC, `toISOString()` desfasa el día y los rangos de mes pierden el último día. Aplicado en `getMonthRange/Quarter/Semester` y en defaults de `<input type="date">`.
 30. **Password change (Settings)** — Supabase Auth users no tienen `password_hash`. Settings.jsx llama `supabase.auth.signInWithPassword` para re-autenticar y luego `supabase.auth.updateUser({ password })` (vía `updatePassword` aliasada de `AuthContext`). Endpoint legacy `PUT /api/auth/password` rechaza Supabase users.
-31. **DateFilter mount loop** — DateFilter dispara `onChange` en su `useEffect` inicial. Si el contenedor lo desmonta durante `loading`, al remontar genera un nuevo `dateRange` → fetch infinito. PersonalFinances mantiene DateFilter montado y solo reemplaza el bloque de stats/tabla con el spinner.
+31. **DateFilter mount loop** — DateFilter dispara `onChange` en su `useEffect` inicial. Si el contenedor lo desmonta durante `loading` (ej. con early return), al remontar genera un nuevo `dateRange` → fetch infinito. **Patrón correcto:** DateFilter siempre fuera del bloque condicional de loading; solo el contenido (stats/tabla/gráficas) va dentro del ternario `loading ? spinner : contenido`. Aplicado en PersonalFinances, HouseholdDetail y Reports.
 32. **Settings deep-link** — `/settings?tab=categorias` (o `?tab=perfil`) selecciona la pestaña al montar. Validado contra el array `TABS`.
 33. **`has_paid_splits` flag** — true cuando al menos un split no-pagador está pagado. Frontend lo usa para deshabilitar el botón Editar.
 34. **Color scheme:**
@@ -390,13 +398,12 @@ The `/personal/expenses` endpoint returns a unified list:
 ## Recent Commits
 
 ```
+6bdace5 refactor: fix Reports reload loop, extract useFormModal hook and TransactionRow
+e2efe1f refactor: extract shared helpers and fix HouseholdDetail infinite reload
+6ad7f1c Refactor: hook useFetch y StatCard reutilizado en Dashboard, PersonalFinances, Reports y HouseholdDetail
 0e1afc6 Feat: Dashboard móvil - scroll horizontal en Accesos Rápidos y orden invertido en móvil
 e927041 Feat: toggle visibilidad de contraseña con icono ojo en Login, Register, ResetPassword y Settings
-edaabcd Docs: README orientado a portfolio con highlights técnicos
 101bc93 Merge branch 'fix/ajustes-y-bug': ajustes y fixes en Settings, PersonalFinances y Dashboard
-2804d96 Docs: Actualizar AGENTS.md con cambios de la rama fix/ajustes-y-bug
-d2b101a Feat: Acceso rápido a Categorías desde el Dashboard
-95e7745 Fix: Bucle infinito de fetch al recargar PersonalFinances
 ```
 
 ---
