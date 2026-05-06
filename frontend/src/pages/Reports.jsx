@@ -259,14 +259,6 @@ export default function Reports() {
     },
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" />
-      </div>
-    )
-  }
-
   const stats = [
     {
       name: 'Ingresos',
@@ -304,79 +296,87 @@ export default function Reports() {
         <DateFilter onChange={setDateRange} year={currentYear} />
       </div>
 
-      {/* Cards resumen por periodo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.name} {...stat} subtitle={`Total ${periodLabel}`} />
-        ))}
-      </div>
-
-      {/* Gráficas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Ingresos vs Gastos */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
-              <ChartBarIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Ingresos vs Gastos</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Bar data={incomeVsExpensesData} options={chartOptions} />
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" />
         </div>
-
-        {/* 2. Distribución por categoría */}
-        <div className="card p-4 md:p-6">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3">
-              <ChartPieIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Gastos por categoría</h2>
+      ) : (
+        <>
+          {/* Cards resumen por periodo */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {stats.map((stat) => (
+              <StatCard key={stat.name} {...stat} subtitle={`Total ${periodLabel}`} />
+            ))}
           </div>
-          <div className="h-56 md:h-72">
-            {personalSummary?.by_category?.length > 0 ? (
-              <Doughnut data={categoryData} options={doughnutOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
-                No hay datos de categorías
+
+          {/* Gráficas */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. Ingresos vs Gastos */}
+            <div className="card p-4 md:p-6">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3">
+                  <ChartBarIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Ingresos vs Gastos</h2>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Gastos compartidos vs personales */}
-        <div className="card p-4 md:p-6 lg:col-span-2">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
-              <ChartBarIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Gastos personales vs compartidos</h2>
-          </div>
-          <div className="h-56 md:h-72">
-            <Bar data={sharedVsPersonalData} options={chartOptions} />
-          </div>
-        </div>
-
-        {/* 4. Top Gastos */}
-        <div className="card p-4 md:p-6 lg:col-span-2">
-          <div className="flex items-center mb-4 md:mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mr-3">
-              <FireIcon className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-dark-50">Top Gastos</h2>
-          </div>
-          <div className="h-64 md:h-80">
-            {topExpenses.length > 0 ? (
-              <Bar data={topExpensesData} options={horizontalBarOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-dark-400 text-sm">
-                No hay datos de gastos
+              <div className="h-56 md:h-72">
+                <Bar data={incomeVsExpensesData} options={chartOptions} />
               </div>
-            )}
+            </div>
+
+            {/* 2. Distribución por categoría */}
+            <div className="card p-4 md:p-6">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3">
+                  <ChartPieIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Gastos por categoría</h2>
+              </div>
+              <div className="h-56 md:h-72">
+                {personalSummary?.by_category?.length > 0 ? (
+                  <Doughnut data={categoryData} options={doughnutOptions} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-dark-400 text-sm">
+                    No hay datos de categorías
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Gastos compartidos vs personales */}
+            <div className="card p-4 md:p-6 lg:col-span-2">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mr-3">
+                  <ChartBarIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Gastos personales vs compartidos</h2>
+              </div>
+              <div className="h-56 md:h-72">
+                <Bar data={sharedVsPersonalData} options={chartOptions} />
+              </div>
+            </div>
+
+            {/* 4. Top Gastos */}
+            <div className="card p-4 md:p-6 lg:col-span-2">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center mr-3">
+                  <FireIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-dark-50">Top Gastos</h2>
+              </div>
+              <div className="h-64 md:h-80">
+                {topExpenses.length > 0 ? (
+                  <Bar data={topExpensesData} options={horizontalBarOptions} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-dark-400 text-sm">
+                    No hay datos de gastos
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

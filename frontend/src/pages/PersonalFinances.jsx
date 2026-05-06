@@ -6,6 +6,7 @@ import DateFilter from '../components/DateFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import StatCard from '../components/StatCard'
 import { useFetch } from '../hooks/useFetch'
+import { useFormModal } from '../hooks/useFormModal'
 import { getCurrentMonth, getMonthRange, getPeriodLabel, formatLocalDate } from '../utils/dateUtils'
 import {
   PlusIcon,
@@ -16,20 +17,153 @@ import {
   PencilIcon,
 } from '@heroicons/react/24/outline'
 
+function TransactionRow({ transaction, isSelected, onSelect, onEdit, onDelete, onUnshare }) {
+  return (
+    <tr
+      className={`hover:bg-dark-800/50 transition-colors ${
+        isSelected ? 'bg-primary-500/10' : ''
+      }`}
+    >
+      <td className="table-cell">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onSelect(transaction.id)}
+          disabled={transaction.is_debt}
+          className="rounded bg-dark-800 border-dark-600 disabled:opacity-50"
+        />
+      </td>
+      <td className="table-cell">
+        {new Date(transaction.date).toLocaleDateString('es-ES')}
+      </td>
+      <td className="table-cell font-medium max-w-xs truncate">
+        {transaction.description || '-'}
+      </td>
+      <td className="table-cell text-dark-300">
+        {transaction.category ? `${transaction.category.icon} ${transaction.category.name}` : '-'}
+      </td>
+      <td className="table-cell">
+        <span
+          className={`badge ${
+            transaction.is_debt && !transaction.is_paid
+              ? 'badge-warning'
+              : transaction.is_debt && transaction.is_paid
+              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+              : transaction.is_fully_paid
+              ? 'badge-success'
+              : transaction.type === 'income'
+              ? 'badge-success'
+              : 'badge-danger'
+          }`}
+        >
+          {transaction.is_debt && !transaction.is_paid
+            ? 'Deuda'
+            : transaction.is_debt && transaction.is_paid
+            ? 'Pagado'
+            : transaction.is_fully_paid
+            ? 'Pagado'
+            : transaction.type === 'income'
+            ? 'Ingreso'
+            : 'Gasto'}
+        </span>
+      </td>
+      <td
+        className={`px-4 py-3 text-sm font-semibold text-right ${
+          transaction.is_debt && !transaction.is_paid
+            ? 'text-orange-400'
+            : transaction.is_debt && transaction.is_paid
+            ? 'text-purple-400'
+            : transaction.type === 'income'
+            ? 'text-primary-400'
+            : 'text-red-400'
+        }`}
+      >
+        {transaction.is_debt ? (
+          <>€{parseFloat(transaction.amount).toFixed(2)}</>
+        ) : transaction.type === 'income' ? (
+          <>+€{parseFloat(transaction.amount).toFixed(2)}</>
+        ) : (
+          <>-€{parseFloat(transaction.amount).toFixed(2)}</>
+        )}
+        {!transaction.is_debt && transaction.my_share !== null && transaction.my_share !== undefined && (
+          <span className="block text-xs text-purple-400">
+            (€{parseFloat(transaction.my_share).toFixed(2)} compartido)
+          </span>
+        )}
+        {transaction.is_debt && !transaction.is_paid && (
+          <span className="block text-xs text-orange-400">(debes)</span>
+        )}
+      </td>
+      <td className="table-cell text-right">
+        <div className="flex justify-end space-x-2">
+          {transaction.shared_expense_id && !transaction.is_debt && !transaction.is_fully_paid && (
+            <button
+              onClick={() => onUnshare(transaction.shared_expense_id)}
+              className="text-yellow-400 hover:text-yellow-300 transition"
+              title="Descompartir"
+            >
+              <HomeIcon className="h-5 w-5" />
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(transaction)}
+            disabled={transaction.is_debt || transaction.has_paid_splits}
+            className={`transition ${
+              transaction.is_debt || transaction.has_paid_splits
+                ? 'text-dark-600 cursor-not-allowed'
+                : 'text-dark-400 hover:text-primary-400'
+            }`}
+            title={
+              transaction.is_debt
+                ? 'No puedes editar gastos de otros'
+                : transaction.has_paid_splits
+                ? 'No se puede editar: ya hay pagos realizados'
+                : 'Editar'
+            }
+          >
+            <PencilIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => onDelete(transaction.id)}
+            className={`transition ${
+              transaction.is_debt || !!transaction.shared_expense_id
+                ? 'text-dark-600 cursor-not-allowed'
+                : 'text-dark-400 hover:text-red-400'
+            }`}
+            disabled={transaction.is_debt || !!transaction.shared_expense_id}
+            title={
+              transaction.is_debt
+                ? 'No puedes eliminar gastos de otros'
+                : transaction.is_fully_paid
+                ? 'Gasto saldado, no se puede eliminar'
+                : transaction.shared_expense_id
+                ? 'Descomparte primero'
+                : 'Eliminar'
+            }
+          >
+            <TrashIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 export default function PersonalFinances() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [categories, setCategories] = useState([])
   const { loading, run } = useFetch()
-  const [showModal, setShowModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [summary, setSummary] = useState({ income: 0, expenses: 0, balance: 0 })
   const [dateRange, setDateRange] = useState(() => getMonthRange(getCurrentMonth().month, getCurrentMonth().year))
-  const [editingId, setEditingId] = useState(null)
-  const [editingShared, setEditingShared] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [formData, setFormData] = useState({
+  const {
+    showModal, editingId, editingShared,
+    formData, setFormData,
+    formError, setFormError,
+    openForNew, openForEdit, closeModal,
+  } = useFormModal({
     amount: '',
     description: '',
     category_id: '',
@@ -43,7 +177,7 @@ export default function PersonalFinances() {
 
   useEffect(() => {
     if (searchParams.get('action') === 'new') {
-      setShowModal(true)
+      openForNew()
       setSearchParams({})
     }
   }, [searchParams, setSearchParams])
@@ -72,8 +206,7 @@ export default function PersonalFinances() {
       } else {
         await api.post('/personal/expenses', formData)
       }
-      setShowModal(false)
-      resetForm()
+      closeModal()
       fetchData()
     } catch (error) {
       console.error('Error saving transaction:', error)
@@ -82,30 +215,17 @@ export default function PersonalFinances() {
   }
 
   const startEdit = (transaction) => {
-    setEditingId(transaction.id)
-    setEditingShared(!!transaction.shared_expense_id)
-    setFormError('')
-    setFormData({
-      amount: String(transaction.amount),
-      description: transaction.description || '',
-      category_id: transaction.category_id ? String(transaction.category_id) : '',
-      date: formatLocalDate(new Date(transaction.date)),
-      type: transaction.type,
-    })
-    setShowModal(true)
-  }
-
-  const resetForm = () => {
-    setEditingId(null)
-    setEditingShared(false)
-    setFormError('')
-    setFormData({
-      amount: '',
-      description: '',
-      category_id: '',
-      date: formatLocalDate(new Date()),
-      type: 'expense',
-    })
+    openForEdit(
+      transaction.id,
+      {
+        amount: String(transaction.amount),
+        description: transaction.description || '',
+        category_id: transaction.category_id ? String(transaction.category_id) : '',
+        date: formatLocalDate(new Date(transaction.date)),
+        type: transaction.type,
+      },
+      !!transaction.shared_expense_id,
+    )
   }
 
   const deleteTransaction = async (id) => {
@@ -236,139 +356,15 @@ export default function PersonalFinances() {
               </thead>
               <tbody className="divide-y divide-dark-700">
                 {transactions.map((transaction) => (
-                  <tr
+                  <TransactionRow
                     key={transaction.id}
-                    className={`hover:bg-dark-800/50 transition-colors ${
-                      selectedIds.includes(transaction.id) ? 'bg-primary-500/10' : ''
-                    }`}
-                  >
-                    <td className="table-cell">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(transaction.id)}
-                        onChange={() => toggleSelect(transaction.id)}
-                        disabled={transaction.is_debt}
-                        className="rounded bg-dark-800 border-dark-600 disabled:opacity-50"
-                      />
-                    </td>
-                    <td className="table-cell">
-                      {new Date(transaction.date).toLocaleDateString('es-ES')}
-                    </td>
-                    <td className="table-cell font-medium max-w-xs truncate">
-                      {transaction.description || '-'}
-                    </td>
-                    <td className="table-cell text-dark-300">
-                      {transaction.category ? `${transaction.category.icon} ${transaction.category.name}` : '-'}
-                    </td>
-                    <td className="table-cell">
-                      <span
-                        className={`badge ${
-                          transaction.is_debt && !transaction.is_paid
-                            ? 'badge-warning'
-                            : transaction.is_debt && transaction.is_paid
-                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                            : transaction.is_fully_paid
-                            ? 'badge-success'
-                            : transaction.type === 'income'
-                            ? 'badge-success'
-                            : 'badge-danger'
-                        }`}
-                      >
-                        {transaction.is_debt && !transaction.is_paid
-                          ? 'Deuda'
-                          : transaction.is_debt && transaction.is_paid
-                          ? 'Pagado'
-                          : transaction.is_fully_paid
-                          ? 'Pagado'
-                          : transaction.type === 'income'
-                          ? 'Ingreso'
-                          : 'Gasto'}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-sm font-semibold text-right ${
-                        transaction.is_debt && !transaction.is_paid
-                          ? 'text-orange-400'
-                          : transaction.is_debt && transaction.is_paid
-                          ? 'text-purple-400'
-                          : transaction.type === 'income'
-                          ? 'text-primary-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {transaction.is_debt ? (
-                        <>€{parseFloat(transaction.amount).toFixed(2)}</>
-                      ) : transaction.type === 'income' ? (
-                        <>+€{parseFloat(transaction.amount).toFixed(2)}</>
-                      ) : (
-                        <>-€{parseFloat(transaction.amount).toFixed(2)}</>
-                      )}
-                      {!transaction.is_debt && transaction.my_share !== null && transaction.my_share !== undefined && (
-                        <span className="block text-xs text-purple-400">
-                          (€
-                          {parseFloat(transaction.my_share).toFixed(2)} compartido)
-                        </span>
-                      )}
-                      {transaction.is_debt && !transaction.is_paid && (
-                        <span className="block text-xs text-orange-400">
-                          (debes)
-                        </span>
-                      )}
-                    </td>
-                    <td className="table-cell text-right">
-                      <div className="flex justify-end space-x-2">
-                        {transaction.shared_expense_id && !transaction.is_debt && !transaction.is_fully_paid && (
-                          <button
-                            onClick={() => unshareExpense(transaction.shared_expense_id)}
-                            className="text-yellow-400 hover:text-yellow-300 transition"
-                            title="Descompartir"
-                          >
-                            <HomeIcon className="h-5 w-5" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => startEdit(transaction)}
-                          disabled={transaction.is_debt || transaction.has_paid_splits}
-                          className={`transition ${
-                            transaction.is_debt || transaction.has_paid_splits
-                              ? 'text-dark-600 cursor-not-allowed'
-                              : 'text-dark-400 hover:text-primary-400'
-                          }`}
-                          title={
-                            transaction.is_debt
-                              ? 'No puedes editar gastos de otros'
-                              : transaction.has_paid_splits
-                              ? 'No se puede editar: ya hay pagos realizados'
-                              : 'Editar'
-                          }
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => deleteTransaction(transaction.id)}
-                          className={`transition ${
-                            transaction.is_debt || (transaction.shared_expense_id && transaction.is_fully_paid)
-                              ? 'text-dark-600 cursor-not-allowed'
-                              : transaction.shared_expense_id
-                              ? 'text-dark-600 cursor-not-allowed'
-                              : 'text-dark-400 hover:text-red-400'
-                          }`}
-                          disabled={transaction.is_debt || !!transaction.shared_expense_id}
-                          title={
-                            transaction.is_debt
-                              ? 'No puedes eliminar gastos de otros'
-                              : transaction.is_fully_paid
-                              ? 'Gasto saldado, no se puede eliminar'
-                              : transaction.shared_expense_id
-                              ? 'Descomparte primero'
-                              : 'Eliminar'
-                          }
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    transaction={transaction}
+                    isSelected={selectedIds.includes(transaction.id)}
+                    onSelect={toggleSelect}
+                    onEdit={startEdit}
+                    onDelete={deleteTransaction}
+                    onUnshare={unshareExpense}
+                  />
                 ))}
               </tbody>
             </table>
@@ -503,10 +499,7 @@ export default function PersonalFinances() {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    resetForm()
-                  }}
+                  onClick={closeModal}
                   className="btn-secondary"
                 >
                   Cancelar
@@ -543,7 +536,7 @@ export default function PersonalFinances() {
         </button>
       ) : (
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openForNew}
           className="fab h-14 w-14 sm:w-auto sm:px-6 sm:gap-2"
         >
           <PlusIcon className="h-6 w-6 sm:h-5 sm:w-5" />
