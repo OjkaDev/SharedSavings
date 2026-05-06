@@ -45,9 +45,10 @@ origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://sharedsavings.vercel.app",
+    "https://shared-savings.vercel.app",
 ]
 
-origin_regex = r"https://sharedsavings.*\.vercel\.app"
+origin_regex = r"https://shared-?savings.*\.vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
