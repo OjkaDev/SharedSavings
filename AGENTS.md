@@ -239,6 +239,7 @@ users (1) <--M--> household_members (M) <--M--> (1) households
 ### Debt Calculation
 - Debts from `ExpenseSplit.paid` status
 - `GET /households/{id}/debts` returns you_owe, you_are_owed, balance
+- `PUT /households/{id}/pay` — liquida **ambos lados** bilaterales: mis splits en gastos del otro + sus splits en mis gastos. Esto refleja el saldo neto: si A debe 200€ a B y B debe 100€ a A, al pagar se marcan los 300€ en splits como pagados y el balance queda a 0.
 
 ### Personal Finances Display
 The `/personal/expenses` endpoint returns a unified list:
@@ -326,10 +327,18 @@ The `/personal/expenses` endpoint returns a unified list:
 - **Settings.jsx success message** al crear categoría (3s autohide)
 - **Settings emoji panel:** `onBlur+setTimeout` y `onMouseDown` en panel (fix doble clic en Añadir) + sugerencias centradas
 - **Dashboard quick-access "Categorías"** → `/settings?tab=categorias` (deep-link)
+- **Toggle visibilidad contraseña** — Botón ojo (`EyeIcon`/`EyeSlashIcon` de heroicons) en todos los campos password: Login, Register, ResetPassword, Settings. `tabIndex={-1}` excluye el botón del tab-order.
+- **Dashboard layout:** `items-start` en el grid Resumen Financiero / Accesos Rápidos → cada tarjeta tiene su propia altura (no se estiran mutuamente)
+- **Dashboard Accesos Rápidos móvil:** tira horizontal deslizable (`flex overflow-x-auto`, items `w-28 flex-shrink-0`) en móvil; grid de 3 columnas en desktop (`lg:grid lg:grid-cols-3`). En móvil aparece encima del Resumen Financiero (`order-first / order-last lg:order-none`)
+- **Fix deudas bilaterales:** `PUT /households/{id}/pay` ahora liquida ambos lados de la relación (mis splits en gastos del otro + sus splits en mis gastos) para reflejar correctamente el saldo neto tras el pago
 
 **Pending:**
 - Database review and security
 - Deployment to Vercel + Render
+- Tests E2E (Playwright)
+- Internacionalización (ES/EN)
+- Modo claro/oscuro toggleable
+- Export de reportes a PDF
 
 ---
 
@@ -381,32 +390,13 @@ The `/personal/expenses` endpoint returns a unified list:
 ## Recent Commits
 
 ```
-be57e6e Feat: Acceso rápido a Categorías desde el Dashboard (deep-link ?tab=categorias)
-5601e5e Fix: Bucle infinito de fetch al recargar PersonalFinances (DateFilter mount loop)
-49fa025 Feat/Fix: Cuatro ajustes en PersonalFinances (editar, fecha último día, categoría required, loading)
-c16cbb1 Fix: Tres ajustes en Settings - categorías (mensaje éxito, doble clic, centrado)
-ffc78fe Fix: Cambio de contraseña usa Supabase Auth (re-auth + updateUser)
-44fe2f2 Refactor: Eliminar código muerto, extraer helpers y crear componentes reutilizables
-ff3659d Feat: Cambiar Vivienda a Grupo + accesos rápidos personalizados en Dashboard
-a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter
-8b1eda9 Docs: Update AGENTS.md with Reports redesign, household_categories, and category visibility rules
-6550805 Feat: Associate custom categories to households via junction table for shared expense visibility
-de44aa1 Feat: Include shared expense debts in reports by category and monthly breakdown
-83936ba Feat: Redesign Reports page to match Dashboard style with dark theme and mobile responsive
-e088a51 Feat: Redesign categories - global defaults + Settings sidebar + emoji panel
-b45ce2b Feat: Incluir deudas en summary + proteger acciones de gastos de otros
-92c5f5b Feat: Mostrar estado de pago en deudas - naranja (debes), púrpura (te deber), rojo (pagado)
-```
-a9d3a0b Feat: Top gastos chart + period filter (month/quarter/semester/year) + redesigned DateFilter
-8b1eda9 Docs: Update AGENTS.md with Reports redesign, household_categories, and category visibility rules
-6550805 Feat: Associate custom categories to households via junction table for shared expense visibility
-de44aa1 Feat: Include shared expense debts in reports by category and monthly breakdown
-83936ba Feat: Redesign Reports page to match Dashboard style with dark theme and mobile responsiveness
-e088a51 Feat: Redesign categories - global defaults + Settings sidebar + emoji panel
-b45ce2b Feat: Incluir deudas en summary + proteger acciones de gastos de otros
-92c5f5b Feat: Mostrar estado de pago en deudas - naranja (debes), púrpura (te deben), rojo (pagado)
-200a2fd Feat: Mostrar deudas de gastos compartidos por otros en finanzas personales
-fa90916 Feat: Gastos compartidos muestran parte proporcional + Fix selector año duplicado
+0e1afc6 Feat: Dashboard móvil - scroll horizontal en Accesos Rápidos y orden invertido en móvil
+e927041 Feat: toggle visibilidad de contraseña con icono ojo en Login, Register, ResetPassword y Settings
+edaabcd Docs: README orientado a portfolio con highlights técnicos
+101bc93 Merge branch 'fix/ajustes-y-bug': ajustes y fixes en Settings, PersonalFinances y Dashboard
+2804d96 Docs: Actualizar AGENTS.md con cambios de la rama fix/ajustes-y-bug
+d2b101a Feat: Acceso rápido a Categorías desde el Dashboard
+95e7745 Fix: Bucle infinito de fetch al recargar PersonalFinances
 ```
 
 ---
