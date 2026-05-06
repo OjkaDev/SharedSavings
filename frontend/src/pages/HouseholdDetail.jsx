@@ -78,21 +78,6 @@ export default function HouseholdDetail() {
     }
   }
 
-  if (loading) {
-    return <LoadingSpinner />
-  }
-
-  if (!household) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-dark-400">Vivienda no encontrada</p>
-        <Link to="/household" className="text-primary-400 hover:text-primary-300">
-          Volver a viviendas
-        </Link>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
@@ -103,14 +88,26 @@ export default function HouseholdDetail() {
           <ArrowLeftIcon className="h-6 w-6" />
         </Link>
         <div>
-          <h1 className="heading">{household.name}</h1>
+          <h1 className="heading">{household?.name ?? '...'}</h1>
           <p className="subheading mt-1">
-            {household.members?.length || 0} miembros
+            {household?.members?.length || 0} miembros
           </p>
         </div>
       </div>
 
       <DateFilter onChange={setDateRange} />
+
+      {loading && !household ? (
+        <LoadingSpinner />
+      ) : !household ? (
+        <div className="text-center py-12">
+          <p className="text-dark-400">Vivienda no encontrada</p>
+          <Link to="/household" className="text-primary-400 hover:text-primary-300">
+            Volver a viviendas
+          </Link>
+        </div>
+      ) : (
+        <>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[
@@ -281,6 +278,8 @@ export default function HouseholdDetail() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

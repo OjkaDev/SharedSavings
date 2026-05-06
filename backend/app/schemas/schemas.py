@@ -141,7 +141,7 @@ class PersonalExpenseUpdate(BaseModel):
     type: str = "expense"
 
 
-class PersonalExpenseResponse(BaseModel):
+class PersonalExpenseBase(BaseModel):
     id: int
     user_id: int
     amount: float
@@ -152,15 +152,18 @@ class PersonalExpenseResponse(BaseModel):
     shared_expense_id: Optional[int] = None
     created_at: datetime
     category: Optional[CategoryResponse]
+
+    class Config:
+        from_attributes = True
+
+
+class PersonalExpenseResponse(PersonalExpenseBase):
     my_share: Optional[float] = None
     is_shared_by_me: Optional[bool] = None
     is_debt: Optional[bool] = None
     is_paid: Optional[bool] = None
     is_fully_paid: Optional[bool] = None
     has_paid_splits: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
 
 class PersonalSummary(BaseModel):
     income: float

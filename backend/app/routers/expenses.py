@@ -6,7 +6,7 @@ from datetime import datetime
 from app.models.database import get_db, User, Expense, ExpenseSplit, Category, household_members, household_categories, PersonalExpense
 from app.schemas.schemas import ExpenseCreate, ExpenseResponse, ExpenseSummary, ShareExpensesRequest, ShareExpensesResponse, MonthlySharedData
 from app.utils.auth import get_current_user
-from app.utils.helpers import get_household_or_403, create_expense_splits, apply_date_filters
+from app.utils.helpers import get_household_or_403, get_or_404, init_monthly_buckets, create_expense_splits, apply_date_filters
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -85,20 +85,7 @@ def create_expense(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    is_member = (
-        db.query(household_members)
-        .filter(
-            household_members.c.user_id == current_user.id,
-            household_members.c.household_id == expense_data.household_id,
-        )
-        .first()
-    )
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this household",
-        )
+    household = get_household_or_403(expense_data.household_id, current_user, db)
 
     expense = Expense(
         household_id=expense_data.household_id,
@@ -112,12 +99,7 @@ def create_expense(
     db.add(expense)
     db.flush()
 
-    members = (
-        db.query(User)
-        .join(household_members, User.id == household_members.c.user_id)
-        .filter(household_members.c.household_id == expense_data.household_id)
-        .all()
-    )
+    members = household.members
 
     create_expense_splits(
         db, expense.id, expense_data.amount,
@@ -135,12 +117,7 @@ def delete_expense(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found",
-        )
+    expense = get_or_404(db, Expense, expense_id, "Expense not found")
 
     if expense.paid_by != current_user.id:
         raise HTTPException(
@@ -160,29 +137,8 @@ def share_expenses_to_household(
     db: Session = Depends(get_db),
 ):
     """Compartir gastos personales a una vivienda"""
-    # Verificar que el usuario es miembro de la vivienda
-    is_member = (
-        db.query(household_members)
-        .filter(
-            household_members.c.user_id == current_user.id,
-            household_members.c.household_id == share_data.household_id,
-        )
-        .first()
-    )
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this household",
-        )
-
-    # Obtener miembros de la vivienda
-    members = (
-        db.query(User)
-        .join(household_members, User.id == household_members.c.user_id)
-        .filter(household_members.c.household_id == share_data.household_id)
-        .all()
-    )
+    household = get_household_or_403(share_data.household_id, current_user, db)
+    members = household.members
 
     if len(members) < 2:
         raise HTTPException(
@@ -267,12 +223,7 @@ def unshare_expense(
     db: Session = Depends(get_db),
 ):
     """Descompartir un gasto (eliminar gasto compartido)"""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found",
-        )
+    expense = get_or_404(db, Expense, expense_id, "Expense not found")
 
     # Solo el que compartió puede descompartir
     if expense.paid_by != current_user.id:
@@ -330,10 +281,7 @@ def get_monthly_shared(
         .all()
     )
 
-    # Inicializar los 12 meses con 0
-    result = []
-    for m in range(1, 13):
-        result.append({"month": m, "total": 0.0, "my_share": 0.0})
+    result = init_monthly_buckets({"total": 0.0, "my_share": 0.0})
 
     # Rellenar totales
     for month_num, total in monthly_total:

@@ -3,6 +3,22 @@ from sqlalchemy.orm import Session
 from app.models.database import Household, Expense, ExpenseSplit
 
 
+def get_or_404(db: Session, model, resource_id: int, detail: str = "Not found", **filters):
+    """Fetch a record by id (plus optional extra filters) or raise 404."""
+    query = db.query(model).filter(model.id == resource_id)
+    for attr, value in filters.items():
+        query = query.filter(getattr(model, attr) == value)
+    obj = query.first()
+    if not obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+    return obj
+
+
+def init_monthly_buckets(template: dict) -> list:
+    """Return a 12-element list, one dict per month, with keys from template set to 0."""
+    return [{"month": m, **template} for m in range(1, 13)]
+
+
 def get_household_or_403(household_id: int, current_user, db: Session) -> Household:
     """Validate household exists and user is a member."""
     household = db.query(Household).filter(Household.id == household_id).first()

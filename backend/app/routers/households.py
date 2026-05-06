@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from app.models.database import get_db, User, Household, household_members, Expense, ExpenseSplit
 from app.schemas.schemas import HouseholdCreate, HouseholdResponse, HouseholdMemberResponse, InviteMember, DebtSummary, DebtDetail
 from app.utils.auth import get_current_user
-from app.utils.helpers import get_household_or_403, apply_date_filters
+from app.utils.helpers import get_household_or_403, get_or_404, apply_date_filters
 
 router = APIRouter(prefix="/households", tags=["Households"])
 
@@ -61,12 +61,7 @@ def delete_household(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    household = db.query(Household).filter(Household.id == household_id).first()
-    if not household:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Household not found",
-        )
+    household = get_or_404(db, Household, household_id, "Household not found")
 
     if household.created_by != current_user.id:
         raise HTTPException(
