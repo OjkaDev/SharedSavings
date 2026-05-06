@@ -203,9 +203,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Resumen Financiero unificado */}
-        <div className="card p-4 md:p-6">
+        <div className="card p-4 md:p-6 order-last lg:order-none">
           <h2 className="text-lg font-semibold text-dark-50 mb-4 md:mb-6">Resumen Financiero</h2>
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
             {/* Quesito */}
@@ -234,18 +234,18 @@ export default function Dashboard() {
         </div>
 
         {/* Accesos Rápidos */}
-        <div className="card p-6">
+        <div className="card p-6 order-first lg:order-none">
           <h2 className="text-lg font-semibold text-dark-50 mb-6">Accesos Rápidos</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            <Link to="/personal?action=new" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mb-2 md:mb-3">
-                <PlusIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+          <div className="flex gap-3 overflow-x-auto pb-2 lg:pb-0 lg:grid lg:grid-cols-3 lg:overflow-visible">
+            <Link to="/personal?action=new" className="flex-shrink-0 w-28 lg:w-auto flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mb-2">
+                <PlusIcon className="h-5 w-5 text-white" />
               </div>
-              <p className="text-dark-100 font-medium text-sm md:text-base">Nuevo Gasto</p>
+              <p className="text-dark-100 font-medium text-sm">Nuevo Gasto</p>
               <p className="text-dark-500 text-xs mt-1">Registra un gasto</p>
             </Link>
             {quickAccessHouseholds.map((household) => (
-              <div key={household.id} className="relative flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div key={household.id} className="flex-shrink-0 w-28 lg:w-auto relative flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
                 <button
                   onClick={() => removeQuickAccess(household.id)}
                   className="absolute top-2 right-2 p-1 rounded-full bg-dark-700 hover:bg-red-500/20 text-dark-400 hover:text-red-400 transition"
@@ -254,24 +254,24 @@ export default function Dashboard() {
                   <XMarkIcon className="h-4 w-4" />
                 </button>
                 <Link to={`/household/${household.id}`} className="flex flex-col items-center">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 md:mb-3">
-                    <HomeIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2">
+                    <HomeIcon className="h-5 w-5 text-white" />
                   </div>
-                  <p className="text-dark-100 font-medium text-sm md:text-base truncate max-w-full">{household.name}</p>
+                  <p className="text-dark-100 font-medium text-sm truncate max-w-full">{household.name}</p>
                   <p className="text-dark-500 text-xs mt-1">{household.members?.length || 0} miembros</p>
                 </Link>
               </div>
             ))}
             {quickAccessIds.length < 3 && availableHouseholds.length > 0 && (
-              <div className="relative" ref={dropdownRef}>
+              <div className="flex-shrink-0 w-28 lg:w-auto relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowHouseholdDropdown(!showHouseholdDropdown)}
-                  className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dashed border-dark-600 hover:border-primary-500/30 transition-all group text-center w-full"
+                  className="flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dashed border-dark-600 hover:border-primary-500/30 transition-all group text-center w-full"
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-dark-700 flex items-center justify-center mb-2 md:mb-3">
-                    <PlusIcon className="h-5 w-5 md:h-6 md:w-6 text-dark-400" />
+                  <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center mb-2">
+                    <PlusIcon className="h-5 w-5 text-dark-400" />
                   </div>
-                  <p className="text-dark-400 font-medium text-sm md:text-base">Añadir Grupo</p>
+                  <p className="text-dark-400 font-medium text-sm">Añadir Grupo</p>
                   <p className="text-dark-500 text-xs mt-1">{availableHouseholds.length} disponibles</p>
                 </button>
                 {showHouseholdDropdown && (
@@ -300,18 +300,18 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-            <Link to="/reports" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mb-2 md:mb-3">
-                <DocumentChartBarIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            <Link to="/reports" className="flex-shrink-0 w-28 lg:w-auto flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center mb-2">
+                <DocumentChartBarIcon className="h-5 w-5 text-white" />
               </div>
-              <p className="text-dark-100 font-medium text-sm md:text-base">Informes</p>
+              <p className="text-dark-100 font-medium text-sm">Informes</p>
               <p className="text-dark-500 text-xs mt-1">Estadísticas detalladas</p>
             </Link>
-            <Link to="/settings?tab=categorias" className="flex flex-col items-center p-3 md:p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center mb-2 md:mb-3">
-                <TagIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            <Link to="/settings?tab=categorias" className="flex-shrink-0 w-28 lg:w-auto flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center mb-2">
+                <TagIcon className="h-5 w-5 text-white" />
               </div>
-              <p className="text-dark-100 font-medium text-sm md:text-base">Categorías</p>
+              <p className="text-dark-100 font-medium text-sm">Categorías</p>
               <p className="text-dark-500 text-xs mt-1">Gestionar categorías</p>
             </Link>
           </div>
