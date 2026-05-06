@@ -191,10 +191,12 @@ def pay_debts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Marcar deudas como pagadas. Si se especifica user_id, solo con ese miembro."""
+    """Marcar deudas como pagadas. Si se especifica user_id, solo con ese miembro.
+    Liquida ambos lados de la relación bilateral para reflejar el saldo neto."""
     get_household_or_403(household_id, current_user, db)
 
-    query = (
+    # Mis splits sin pagar en gastos del otro (lo que yo debo)
+    my_splits_query = (
         db.query(ExpenseSplit)
         .join(Expense, ExpenseSplit.expense_id == Expense.id)
         .filter(
@@ -203,12 +205,25 @@ def pay_debts(
             ExpenseSplit.paid == False,
         )
     )
-    if user_id:
-        query = query.filter(Expense.paid_by == user_id)
-    else:
-        query = query.filter(Expense.paid_by != current_user.id)
+    # Sus splits sin pagar en mis gastos (lo que me deben, compensado en el neto)
+    their_splits_query = (
+        db.query(ExpenseSplit)
+        .join(Expense, ExpenseSplit.expense_id == Expense.id)
+        .filter(
+            Expense.household_id == household_id,
+            Expense.paid_by == current_user.id,
+            ExpenseSplit.paid == False,
+        )
+    )
 
-    splits_to_pay = query.all()
+    if user_id:
+        my_splits_query = my_splits_query.filter(Expense.paid_by == user_id)
+        their_splits_query = their_splits_query.filter(ExpenseSplit.user_id == user_id)
+    else:
+        my_splits_query = my_splits_query.filter(Expense.paid_by != current_user.id)
+        their_splits_query = their_splits_query.filter(ExpenseSplit.user_id != current_user.id)
+
+    splits_to_pay = my_splits_query.all() + their_splits_query.all()
     for split in splits_to_pay:
         split.paid = True
 

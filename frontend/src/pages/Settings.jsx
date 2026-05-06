@@ -14,6 +14,8 @@ import {
   KeyIcon,
   CheckIcon,
   XMarkIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from '@heroicons/react/24/outline'
 
 const EMOJI_CATEGORIES = {
@@ -56,6 +58,7 @@ export default function Settings() {
   })
   const [categoryMsg, setCategoryMsg] = useState('')
   const [showEmojiSuggestions, setShowEmojiSuggestions] = useState(false)
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false })
 
   useEffect(() => {
     fetchCategories()
@@ -223,43 +226,79 @@ export default function Settings() {
                 <label className="block text-sm font-medium text-dark-300 mb-2 text-center">
                   Contraseña actual
                 </label>
-                <input
-                  type="password"
-                  value={passwordData.current_password}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, current_password: e.target.value })
-                  }
-                  className="input-field"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.current ? 'text' : 'password'}
+                    value={passwordData.current_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, current_password: e.target.value })
+                    }
+                    className="input-field pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-dark-400 hover:text-dark-200"
+                    tabIndex={-1}
+                  >
+                    {showPasswords.current
+                      ? <EyeSlashIcon className="h-5 w-5" />
+                      : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-dark-300 mb-2 text-center">
                   Nueva contraseña
                 </label>
-                <input
-                  type="password"
-                  value={passwordData.new_password}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, new_password: e.target.value })
-                  }
-                  className="input-field"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.new ? 'text' : 'password'}
+                    value={passwordData.new_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, new_password: e.target.value })
+                    }
+                    className="input-field pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-dark-400 hover:text-dark-200"
+                    tabIndex={-1}
+                  >
+                    {showPasswords.new
+                      ? <EyeSlashIcon className="h-5 w-5" />
+                      : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-dark-300 mb-2 text-center">
                   Confirmar nueva contraseña
                 </label>
-                <input
-                  type="password"
-                  value={passwordData.confirm_password}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, confirm_password: e.target.value })
-                  }
-                  className="input-field"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.confirm ? 'text' : 'password'}
+                    value={passwordData.confirm_password}
+                    onChange={(e) =>
+                      setPasswordData({ ...passwordData, confirm_password: e.target.value })
+                    }
+                    className="input-field pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-dark-400 hover:text-dark-200"
+                    tabIndex={-1}
+                  >
+                    {showPasswords.confirm
+                      ? <EyeSlashIcon className="h-5 w-5" />
+                      : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <div className="flex flex-col items-center space-y-3">
                 <button type="submit" className="btn-primary w-full max-w-xs">
