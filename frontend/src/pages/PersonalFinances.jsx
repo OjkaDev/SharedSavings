@@ -4,6 +4,8 @@ import api from '../services/api'
 import ShareToHouseholdModal from '../components/ShareToHouseholdModal'
 import DateFilter from '../components/DateFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
+import StatCard from '../components/StatCard'
+import { useFetch } from '../hooks/useFetch'
 import { getCurrentMonth, getMonthRange, getPeriodLabel, formatLocalDate } from '../utils/dateUtils'
 import {
   PlusIcon,
@@ -18,7 +20,7 @@ export default function PersonalFinances() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { loading, run } = useFetch()
   const [showModal, setShowModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
@@ -46,23 +48,16 @@ export default function PersonalFinances() {
     }
   }, [searchParams, setSearchParams])
 
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [transactionsRes, categoriesRes, summaryRes] = await Promise.all([
-        api.get('/personal/expenses', { params: dateRange }),
-        api.get('/categories'),
-        api.get('/personal/summary', { params: dateRange }),
-      ])
-      setTransactions(transactionsRes.data)
-      setCategories(categoriesRes.data)
-      setSummary(summaryRes.data)
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const fetchData = () => run(async () => {
+    const [transactionsRes, categoriesRes, summaryRes] = await Promise.all([
+      api.get('/personal/expenses', { params: dateRange }),
+      api.get('/categories'),
+      api.get('/personal/summary', { params: dateRange }),
+    ])
+    setTransactions(transactionsRes.data)
+    setCategories(categoriesRes.data)
+    setSummary(summaryRes.data)
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -203,16 +198,7 @@ export default function PersonalFinances() {
             gradient: summary.balance >= 0 ? 'from-cyan-400 to-blue-500' : 'from-orange-400 to-red-500',
           },
         ].map((stat) => (
-          <div key={stat.name} className="card p-3 md:p-5 flex flex-col text-center">
-            <p className="text-dark-300 text-xs md:text-sm font-medium mb-2 md:mb-3">{stat.name}</p>
-            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                <stat.icon className="h-3 w-3 md:h-4 md:w-4 text-white" />
-              </div>
-              <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
-            </div>
-            <p className="text-dark-500 text-xs">Total {getPeriodLabel(dateRange)}</p>
-          </div>
+          <StatCard key={stat.name} {...stat} subtitle={`Total ${getPeriodLabel(dateRange)}`} />
         ))}
       </div>
 

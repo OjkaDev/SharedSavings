@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useFetch } from '../hooks/useFetch'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon, TagIcon } from '@heroicons/react/24/outline'
@@ -19,7 +20,7 @@ const currentMonth = new Date().getMonth() + 1
 const monthName = MONTHS[currentMonth - 1]
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true)
+  const { loading, run } = useFetch()
   const [summary, setSummary] = useState({
     personalIncome: 0,
     personalExpenses: 0,
@@ -53,31 +54,25 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const fetchData = async () => {
-    try {
-      const { month, year } = getCurrentMonth()
-      const { start_date, end_date } = getMonthRange(month, year)
+  const fetchData = () => run(async () => {
+    const { month, year } = getCurrentMonth()
+    const { start_date, end_date } = getMonthRange(month, year)
 
-      const [personalRes, sharedRes, householdsRes] = await Promise.all([
-        api.get('/personal/summary', { params: { start_date, end_date } }),
-        api.get('/expenses/summary', { params: { start_date, end_date } }),
-        api.get('/households'),
-      ])
+    const [personalRes, sharedRes, householdsRes] = await Promise.all([
+      api.get('/personal/summary', { params: { start_date, end_date } }),
+      api.get('/expenses/summary', { params: { start_date, end_date } }),
+      api.get('/households'),
+    ])
 
-      setSummary({
-        personalIncome: personalRes.data.income || 0,
-        personalExpenses: personalRes.data.expenses || 0,
-        sharedTotal: sharedRes.data.total || 0,
-        sharedPending: sharedRes.data.pending || 0,
-        households: householdsRes.data.length || 0,
-      })
-      setHouseholds(householdsRes.data)
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    setSummary({
+      personalIncome: personalRes.data.income || 0,
+      personalExpenses: personalRes.data.expenses || 0,
+      sharedTotal: sharedRes.data.total || 0,
+      sharedPending: sharedRes.data.pending || 0,
+      households: householdsRes.data.length || 0,
+    })
+    setHouseholds(householdsRes.data)
+  })
 
   if (loading) {
     return <LoadingSpinner />
