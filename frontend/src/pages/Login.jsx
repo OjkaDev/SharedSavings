@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -9,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [showResend, setShowResend] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { login, resendVerification } = useAuth()
   const navigate = useNavigate()
 
@@ -102,15 +104,27 @@ export default function Login() {
                 <label htmlFor="password" className="block text-sm font-medium text-dark-300 mb-2">
                   Contraseña
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-dark-400 hover:text-dark-200"
+                    tabIndex={-1}
+                  >
+                    {showPassword
+                      ? <EyeSlashIcon className="h-5 w-5" />
+                      : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
             </div>
 
