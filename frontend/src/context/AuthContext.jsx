@@ -13,10 +13,11 @@ export function AuthProvider({ children }) {
     if (initialized.current) return
     initialized.current = true
 
-    // Listen to auth state changes
+    // Single source of truth for auth state — INITIAL_SESSION covers the
+    // stored-session case, eliminating the race condition with getSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
           await syncUserAndSet(session.user)
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
@@ -27,31 +28,33 @@ export function AuthProvider({ children }) {
       }
     )
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        syncUserAndSet(session.user).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    }).catch(() => {
-      setLoading(false)
-    })
-
     return () => subscription.unsubscribe()
   }, [])
 
   const syncUserAndSet = async (supabaseUser) => {
     try {
-      const response = await api.post('/auth/sync', {
-        supabase_uid: supabaseUser.id,
-        email: supabaseUser.email,
-        name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || ''
-      })
+      // 8-second timeout so a slow/sleeping backend never blocks the app
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Sync timeout')), 8000)
+      )
+      const response = await Promise.race([
+        api.post('/auth/sync', {
+          supabase_uid: supabaseUser.id,
+          email: supabaseUser.email,
+          name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || ''
+        }),
+        timeoutPromise
+      ])
       setUser(response.data)
     } catch (error) {
       console.error('Error syncing user:', error)
-      setUser(null)
+      // Fallback: use Supabase data so the app stays usable even if the
+      // backend is slow or temporarily unavailable
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || ''
+      })
     }
   }
 
@@ -76,9 +79,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // Wait for user to be synced before returning
-    await syncUserAndSet(data.user)
-
+    // syncUserAndSet is handled by onAuthStateChange (SIGNED_IN event)
     return data
   }
 
