@@ -13,55 +13,54 @@
 ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat-square&logo=chartdotjs&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)
 
-[Demo en vivo](#) · [Screenshots](#-screenshots) · [Funcionalidades](#-funcionalidades-clave) · [Stack](#-stack-tecnológico)
+[Demo en vivo](https://shared-savings-sooty.vercel.app) · [Screenshots](#-screenshots) · [Funcionalidades](#-funcionalidades-clave) · [Stack](#-stack-tecnológico)
 
 </div>
 
 ---
 
-## 🎯 El problema que resuelve
+## 🎯 ¿Por qué esta aplicación?
 
-Cuando varias personas comparten gastos (compañeros de piso, parejas, grupos de viaje), llevar la cuenta de quién debe qué se vuelve un caos: notas en el móvil, hojas de cálculo improvisadas, discusiones por reembolsos olvidados.
+Mi pareja y yo siempre dividimos todos los gastos mensuales de la casa. Las aplicaciones que más nos gustaban, ya sea por la flexibilidad de poder organizar diferentes grupos o por facilitarnos la visualización de los gastos, han pasado a ser de pago o a tener publicidad excesiva.
+Por otro lado, me gusta llevar siempre un control de lo que gano y lo que gasto cada mes para poder seguir ahorrando. Cansado de probar aplicaciones que no me convencían, decidí hacer la mía propia.
 
 **SharedSavings** unifica en una sola app:
-- 🏠 **Gastos compartidos por grupo** con división automática (igual o por porcentaje)
-- 💸 **Finanzas personales** (ingresos y gastos individuales) en el mismo dashboard
-- 🔄 **Cálculo automático de deudas** y estado de pagos por miembro
-- 📊 **Reportes con gráficas** para analizar dónde se va el dinero
+- 🏠 **Gastos compartidos por grupo** con división automática (igual o por porcentaje).
+- 💸 **Finanzas personales** (ingresos y gastos individuales) en el mismo dashboard.
+- 🔄 **Cálculo automático de deudas** y estado de pagos por miembro.
+- 📊 **Reportes con gráficas** para analizar dónde se va el dinero.
 
 ---
 
 ## ✨ Funcionalidades clave
 
 ### 👥 Grupos y miembros
-- Crea grupos (pisos, parejas, viajes) e invita por email
-- Roles diferenciados: *owner* y *member*
-- Hasta 3 grupos pinneados como accesos rápidos en el Dashboard
+- Crea grupos (pisos, parejas, viajes) e invita por email.
+- Roles diferenciados: *owner* y *member*.
 
 ### 💳 Gastos compartidos
-- División en partes iguales o por porcentaje personalizado
-- Estado de pago individual por miembro (pendiente / pagado)
-- Compartir gastos personales al grupo en lote
-- Descompartir manteniendo el registro personal
+- División en partes iguales o por porcentaje personalizado.
+- Estado de pago individual por miembro (pendiente / pagado).
+- Compartir gastos personales al grupo en lote.
 
 ### 💰 Finanzas personales
-- Ingresos y gastos individuales con categorías
-- Edición de gastos propios con restricciones inteligentes para los compartidos
-- Visualización unificada: deudas que debes, gastos que compartiste, transacciones personales
+- Ingresos y gastos individuales con categorías.
+- Edición de gastos propios con restricciones para los compartidos.
+- Visualización unificada: deudas que debes, gastos que compartiste, transacciones personales.
 
 ### 📂 Categorías
-- Categorías globales por defecto (Alimentación, Transporte, Ocio…)
-- Categorías personalizadas con emoji selector
-- Visibilidad inteligente vía junction table (`household_categories`)
+- Categorías globales por defecto (Alimentación, Transporte, Ocio…).
+- Categorías personalizadas con emoji selector.
+- Visibilidad inteligente vía junction table (`household_categories`).
 
 ### 📈 Reportes
-- 4 gráficos Chart.js: distribución por categoría, evolución mensual, top gastos, ingresos vs gastos
-- Filtro por periodo: mes, trimestre, semestre o año
+- 4 gráficos Chart.js: distribución por categoría, evolución mensual, top gastos, ingresos vs gastos.
+- Filtro por periodo: mes, trimestre, semestre o año.
 
 ### 🔐 Autenticación
-- Registro / login vía **Supabase Auth**
-- Verificación de email y reset de contraseña
-- JWT verificado con **ES256 + JWKS**
+- Registro / login vía **Supabase Auth**.
+- Verificación de email y reset de contraseña.
+- JWT verificado con **ES256 + JWKS**.
 
 ---
 
@@ -172,7 +171,6 @@ SharedSavings/
 │       ├── services/api.js      # Axios + interceptor JWT
 │       └── utils/dateUtils.js   # Helpers de período TZ-safe
 │
-├── AGENTS.md                    # Guía técnica completa del proyecto
 └── README.md
 ```
 
@@ -180,8 +178,12 @@ SharedSavings/
 
 ## 🗺 Próximos pasos
 
-- [ ] Despliegue a producción (Vercel + Render)
-- [ ] Tests E2E con Playwright
+**Ideas de nuevas funcionalidades:**
+- [ ] Añadir calendario para compartir disponibilidad o días importantes.
+- [ ] Listas de tareas.
+- [ ] Listas de compra.
+
+**Mejoras técnicas pendientes:**
 - [ ] Internacionalización (ES / EN)
 - [ ] Notificaciones push para deudas pendientes
 - [ ] Modo oscuro / claro toggleable
