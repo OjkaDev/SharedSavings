@@ -15,6 +15,8 @@
 
 [Demo en vivo](https://shared-savings-sooty.vercel.app) · [Screenshots](#-screenshots) · [Funcionalidades](#-funcionalidades-clave) · [Stack](#-stack-tecnológico)
 
+> ⚠️ **Nota:** el backend está desplegado en el plan gratuito de Render y puede tardar entre 30 y 60 segundos en arrancar si lleva 15 minutos inactivo. Si la app no carga al momento, espera un poco y recarga.
+
 </div>
 
 ---
