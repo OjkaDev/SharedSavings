@@ -9,7 +9,10 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('getSession timeout')), 3000))
+  ]).catch(() => ({ data: { session: null } }))
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`
   }

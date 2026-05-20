@@ -29,7 +29,7 @@ function TransactionRow({ transaction, isSelected, onSelect, onEdit, onDelete, o
           type="checkbox"
           checked={isSelected}
           onChange={() => onSelect(transaction.id)}
-          disabled={transaction.is_debt}
+          disabled={transaction.is_debt || !!transaction.shared_expense_id}
           className="rounded bg-dark-800 border-dark-600 disabled:opacity-50"
         />
       </td>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import api from '../services/api'
 
@@ -7,16 +7,16 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const initialized = useRef(false)
 
   useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
+    // Fallback: si INITIAL_SESSION no llega por cualquier motivo, desbloquear tras 10s
+    const loadingFallback = setTimeout(() => setLoading(false), 10000)
 
     // Single source of truth for auth state — INITIAL_SESSION covers the
     // stored-session case, eliminating the race condition with getSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        clearTimeout(loadingFallback)
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
           await syncUserAndSet(session.user)
         } else if (event === 'SIGNED_OUT') {
@@ -28,7 +28,10 @@ export function AuthProvider({ children }) {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(loadingFallback)
+    }
   }, [])
 
   const syncUserAndSet = async (supabaseUser) => {

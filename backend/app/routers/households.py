@@ -183,6 +183,8 @@ def get_household_debts(
 def pay_debts(
     household_id: int,
     user_id: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -217,6 +219,9 @@ def pay_debts(
     else:
         my_splits_query = my_splits_query.filter(Expense.paid_by != current_user.id)
         their_splits_query = their_splits_query.filter(ExpenseSplit.user_id != current_user.id)
+
+    my_splits_query = apply_date_filters(my_splits_query, Expense, start_date, end_date)
+    their_splits_query = apply_date_filters(their_splits_query, Expense, start_date, end_date)
 
     splits_to_pay = my_splits_query.all() + their_splits_query.all()
     for split in splits_to_pay:

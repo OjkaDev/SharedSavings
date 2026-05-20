@@ -14,6 +14,7 @@ import {
   ArrowTrendingDownIcon,
   UserGroupIcon,
   XMarkIcon,
+  ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline'
 
 export default function HouseholdDetail() {
@@ -46,7 +47,9 @@ export default function HouseholdDetail() {
 
     setPayingAll(true)
     try {
-      await api.put(`/households/${id}/pay`)
+      await api.put(`/households/${id}/pay`, null, {
+        params: { start_date: dateRange.start_date, end_date: dateRange.end_date }
+      })
       await fetchData()
     } catch (error) {
       console.error('Error paying all:', error)
@@ -70,11 +73,33 @@ export default function HouseholdDetail() {
   const handlePayMember = async (memberId) => {
     if (!confirm('¿Marcar deuda como pagada?')) return
     try {
-      await api.put(`/households/${id}/pay`, { user_id: memberId })
+      await api.put(`/households/${id}/pay`, null, {
+        params: { user_id: memberId, start_date: dateRange.start_date, end_date: dateRange.end_date }
+      })
       await fetchData()
     } catch (error) {
       console.error('Error paying member:', error)
       alert('Error al marcar pago')
+    }
+  }
+
+  const handlePaySplit = async (splitId) => {
+    try {
+      await api.put(`/expenses/splits/${splitId}/pay`)
+      await fetchData()
+    } catch (error) {
+      console.error('Error paying split:', error)
+      alert('Error al registrar el pago')
+    }
+  }
+
+  const handleUnpaySplit = async (splitId) => {
+    try {
+      await api.put(`/expenses/splits/${splitId}/unpay`)
+      await fetchData()
+    } catch (error) {
+      console.error('Error undoing split payment:', error)
+      alert('Error al deshacer el pago')
     }
   }
 
@@ -260,15 +285,36 @@ export default function HouseholdDetail() {
                         </span>
                       </td>
                       <td className="table-cell text-right">
-                        {expense.paid_by === user?.id && !isSettled && (
-                          <button
-                            onClick={() => handleUnshare(expense.id)}
-                            className="text-yellow-400 hover:text-yellow-300 transition"
-                            title="Descompartir gasto"
-                          >
-                            <XMarkIcon className="h-5 w-5" />
-                          </button>
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          {mySplit && expense.paid_by !== user?.id && (
+                            mySplit.paid ? (
+                              <button
+                                onClick={() => handleUnpaySplit(mySplit.id)}
+                                className="p-1.5 rounded-lg bg-dark-700 hover:bg-orange-500/20 text-dark-400 hover:text-orange-400 transition"
+                                title="Deshacer pago"
+                              >
+                                <ArrowUturnLeftIcon className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handlePaySplit(mySplit.id)}
+                                className="p-1.5 rounded-lg bg-dark-700 hover:bg-green-500/20 text-dark-400 hover:text-green-400 transition"
+                                title="Marcar mi parte como pagada"
+                              >
+                                <CheckIcon className="h-4 w-4" />
+                              </button>
+                            )
+                          )}
+                          {expense.paid_by === user?.id && !isSettled && (
+                            <button
+                              onClick={() => handleUnshare(expense.id)}
+                              className="p-1.5 rounded-lg bg-dark-700 hover:bg-yellow-500/20 text-dark-400 hover:text-yellow-400 transition"
+                              title="Descompartir gasto"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

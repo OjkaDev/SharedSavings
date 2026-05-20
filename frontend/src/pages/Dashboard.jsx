@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useFetch } from '../hooks/useFetch'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
+import Modal from '../components/Modal'
 import { HomeIcon, WalletIcon, CurrencyDollarIcon, ClockIcon, ArrowTrendingUpIcon, PlusIcon, DocumentChartBarIcon, XMarkIcon, TagIcon } from '@heroicons/react/24/outline'
 import { getCurrentMonth, getMonthRange, MONTHS } from '../utils/dateUtils'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -34,7 +35,6 @@ export default function Dashboard() {
     return saved ? JSON.parse(saved) : []
   })
   const [showHouseholdDropdown, setShowHouseholdDropdown] = useState(false)
-  const dropdownRef = useRef(null)
 
   useEffect(() => {
     fetchData()
@@ -43,16 +43,6 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem('quickAccessHouseholds', JSON.stringify(quickAccessIds))
   }, [quickAccessIds])
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowHouseholdDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const fetchData = () => run(async () => {
     const { month, year } = getCurrentMonth()
@@ -177,6 +167,7 @@ export default function Dashboard() {
   ]
 
   return (
+    <>
     <div className="space-y-8">
       <div>
         <h1 className="heading">Dashboard</h1>
@@ -258,9 +249,9 @@ export default function Dashboard() {
               </div>
             ))}
             {quickAccessIds.length < 3 && availableHouseholds.length > 0 && (
-              <div className="flex-shrink-0 w-28 lg:w-auto relative" ref={dropdownRef}>
+              <div className="flex-shrink-0 w-28 lg:w-auto">
                 <button
-                  onClick={() => setShowHouseholdDropdown(!showHouseholdDropdown)}
+                  onClick={() => setShowHouseholdDropdown(true)}
                   className="flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dashed border-dark-600 hover:border-primary-500/30 transition-all group text-center w-full"
                 >
                   <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center mb-2">
@@ -269,30 +260,6 @@ export default function Dashboard() {
                   <p className="text-dark-400 font-medium text-sm">Añadir Grupo</p>
                   <p className="text-dark-500 text-xs mt-1">{availableHouseholds.length} disponibles</p>
                 </button>
-                {showHouseholdDropdown && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-dark-800 border border-dark-700 rounded-xl shadow-xl z-10 overflow-hidden">
-                    <div className="p-2 border-b border-dark-700">
-                      <p className="text-xs text-dark-400 font-medium">Selecciona un grupo</p>
-                    </div>
-                    <div className="max-h-48 overflow-y-auto">
-                      {availableHouseholds.map((household) => (
-                        <button
-                          key={household.id}
-                          onClick={() => addQuickAccess(household.id)}
-                          className="w-full flex items-center gap-3 p-3 hover:bg-dark-700 transition text-left"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center flex-shrink-0">
-                            <HomeIcon className="h-4 w-4 text-white" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-dark-100 text-sm font-medium truncate">{household.name}</p>
-                            <p className="text-dark-500 text-xs">{household.members?.length || 0} miembros</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             <Link to="/reports" className="flex-shrink-0 w-28 lg:w-auto flex flex-col items-center p-3 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 border border-dark-700/50 hover:border-primary-500/30 transition-all group text-center">
@@ -313,5 +280,30 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+
+    <Modal
+      isOpen={showHouseholdDropdown}
+      onClose={() => setShowHouseholdDropdown(false)}
+      title="Añadir Grupo"
+    >
+      <div className="space-y-2">
+        {availableHouseholds.map((household) => (
+          <button
+            key={household.id}
+            onClick={() => addQuickAccess(household.id)}
+            className="w-full flex items-center gap-3 p-3 hover:bg-dark-700 transition rounded-xl text-left"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <HomeIcon className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-dark-100 text-sm font-medium truncate">{household.name}</p>
+              <p className="text-dark-500 text-xs">{household.members?.length || 0} miembros</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </Modal>
+    </>
   )
 }

@@ -239,6 +239,40 @@ def unshare_expense(
     return {"message": "Gasto descompartido correctamente"}
 
 
+@router.put("/splits/{split_id}/pay")
+def pay_split(
+    split_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    split = get_or_404(db, ExpenseSplit, split_id)
+    if split.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    expense = get_or_404(db, Expense, split.expense_id)
+    if expense.paid_by == current_user.id:
+        raise HTTPException(status_code=400, detail="El pagador no tiene deuda propia")
+    split.paid = True
+    db.commit()
+    return {"message": "Pago registrado", "split_id": split_id}
+
+
+@router.put("/splits/{split_id}/unpay")
+def unpay_split(
+    split_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    split = get_or_404(db, ExpenseSplit, split_id)
+    if split.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    expense = get_or_404(db, Expense, split.expense_id)
+    if expense.paid_by == current_user.id:
+        raise HTTPException(status_code=400, detail="El pagador no tiene deuda propia")
+    split.paid = False
+    db.commit()
+    return {"message": "Pago deshecho", "split_id": split_id}
+
+
 @router.get("/monthly", response_model=List[MonthlySharedData])
 def get_monthly_shared(
     year: Optional[int] = None,
